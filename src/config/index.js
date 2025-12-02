@@ -1,8 +1,11 @@
 import { Platform } from 'react-native';
+import Constants from "expo-constants";
+
+const { waqiToken } = Constants.expoConfig.extra;
 
 // For React Native, we need to handle environment variables differently
 const AppConfig = {
-    WAQI_TOKEN: "YOUR_API_KEY_HERE", // Replace with your actual token
+    WAQI_TOKEN: waqiToken, // Replace with your actual token
 
     // Platform-specific configurations
     IS_IOS: Platform.OS === 'ios',
