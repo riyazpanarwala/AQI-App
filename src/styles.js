@@ -1,7 +1,8 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
 import colors from './colors';
 
-const { height } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
 
 export default StyleSheet.create({
     safeArea: {
@@ -11,10 +12,17 @@ export default StyleSheet.create({
     scrollContainer: {
         flex: 1,
         backgroundColor: colors.background,
+        ...(isWeb && {
+            height: '100vh',
+            overflowY: 'auto',
+        }),
     },
     scrollContent: {
         flexGrow: 1,
-        paddingBottom: 40, // Add padding at bottom
+        paddingBottom: 40,
+        ...(isWeb && {
+            minHeight: '100vh',
+        }),
     },
     container: {
         flex: 1,
@@ -22,6 +30,20 @@ export default StyleSheet.create({
         alignItems: 'center',
         backgroundColor: colors.background,
         padding: 20,
+        ...(isWeb && {
+            maxWidth: 800,
+            marginHorizontal: 'auto',
+        }),
+    },
+    header: {
+        alignItems: 'center',
+        marginBottom: 30,
+        paddingTop: 20,
+    },
+    mainContent: {
+        flex: 1,
+        padding: 20,
+        alignItems: 'center',
     },
     envBadge: {
         position: 'absolute',
@@ -34,7 +56,7 @@ export default StyleSheet.create({
         zIndex: 1000,
     },
     envBadgeText: {
-        color: colors.surface,
+        color: colors.white,
         fontSize: 10,
         fontWeight: 'bold',
     },
@@ -50,6 +72,10 @@ export default StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
+        ...(isWeb && {
+            position: 'fixed',
+            cursor: 'pointer',
+        }),
     },
     langText: {
         fontSize: 16,
@@ -67,6 +93,7 @@ export default StyleSheet.create({
         fontSize: 18,
         color: colors.textMuted,
         marginBottom: 30,
+        textAlign: 'center',
     },
     city: {
         fontSize: 20,
@@ -91,7 +118,7 @@ export default StyleSheet.create({
     aqiText: {
         fontSize: 64,
         fontWeight: 'bold',
-        color: colors.surface,
+        color: colors.white,
     },
     aqiLevel: {
         fontSize: 24,
@@ -118,34 +145,39 @@ export default StyleSheet.create({
         marginVertical: 10,
         width: '100%',
         flexWrap: 'wrap',
+        gap: 10,
     },
     actionButton: {
         backgroundColor: colors.primary,
-        paddingHorizontal: 20,
+        paddingHorizontal: 25,
         paddingVertical: 12,
         borderRadius: 25,
-        margin: 5,
         elevation: 3,
-        minWidth: 100,
+        minWidth: 120,
         alignItems: 'center',
+        ...(isWeb && {
+            cursor: 'pointer',
+        }),
     },
     actionButtonText: {
-        color: colors.surface,
-        fontSize: 14,
+        color: colors.white,
+        fontSize: 16,
         fontWeight: 'bold',
     },
     infoButton: {
-        paddingHorizontal: 15,
+        paddingHorizontal: 20,
         paddingVertical: 10,
         borderRadius: 20,
-        margin: 5,
         elevation: 2,
-        minWidth: 90,
+        minWidth: 100,
         alignItems: 'center',
+        ...(isWeb && {
+            cursor: 'pointer',
+        }),
     },
     infoButtonText: {
-        color: colors.surface,
-        fontSize: 12,
+        color: colors.white,
+        fontSize: 14,
         fontWeight: '600',
         textAlign: 'center',
     },
@@ -159,7 +191,7 @@ export default StyleSheet.create({
     },
     dominantText: {
         fontSize: 14,
-        color: '#555',
+        color: colors.textSecondary,
         textAlign: 'center',
     },
     loadingContainer: {
@@ -172,54 +204,22 @@ export default StyleSheet.create({
         fontSize: 16,
         color: colors.textMuted,
     },
-    // Stations Preview
-    stationsPreview: {
+    // ===== CURRENT AQI CARD =====
+    currentAQICard: {
         backgroundColor: colors.surface,
-        borderRadius: 12,
-        padding: 15,
-        marginTop: 20,
-        width: '100%',
-        elevation: 3,
+        borderRadius: 16,
+        padding: 25,
+        alignItems: 'center',
+        elevation: 4,
         shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 8,
+        marginBottom: 25,
+        width: '100%',
     },
-    stationsPreviewTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.text,
-        marginBottom: 10,
-    },
-    previewStations: {
-        marginTop: 5,
-    },
-    previewStation: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.surfaceLight,
-    },
-    previewDot: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        marginRight: 10,
-    },
-    previewText: {
-        flex: 1,
-        fontSize: 14,
-        color: '#555',
-    },
-    previewAQI: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        marginLeft: 10,
-        minWidth: 30,
-        textAlign: 'right',
-    },
-    // Modal Styles
+
+    // ===== MODAL STYLES =====
     modalOverlay: {
         flex: 1,
         backgroundColor: colors.overlay,
@@ -251,6 +251,9 @@ export default StyleSheet.create({
         color: colors.primary,
         fontWeight: 'bold',
         padding: 5,
+        ...(isWeb && {
+            cursor: 'pointer',
+        }),
     },
     section: {
         marginBottom: 20,
@@ -289,7 +292,7 @@ export default StyleSheet.create({
     },
     infoLabel: {
         fontSize: 14,
-        color: '#666',
+        color: colors.textMuted,
     },
     infoValue: {
         fontSize: 14,
@@ -324,7 +327,7 @@ export default StyleSheet.create({
     tableHeaderText: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#333',
+        color: colors.text,
         flex: 1,
         textAlign: 'center',
     },
@@ -337,11 +340,12 @@ export default StyleSheet.create({
     },
     tableCell: {
         fontSize: 12,
-        color: '#555',
+        color: colors.textMuted2,
         flex: 1,
         textAlign: 'center',
     },
-    // Current Location Card in Modal
+
+    // ===== CURRENT LOCATION CARD IN MODAL =====
     currentLocationCard: {
         backgroundColor: colors.pale,
         borderRadius: 12,
@@ -367,17 +371,17 @@ export default StyleSheet.create({
         justifyContent: 'center',
     },
     currentAQIText: {
-        color: colors.surface,
+        color: colors.white,
         fontSize: 18,
         fontWeight: 'bold',
         marginRight: 10,
     },
     currentAQILevel: {
-        color: colors.surface,
+        color: colors.white,
         fontSize: 14,
         fontWeight: '600',
     },
-    // Stations List
+    // ===== NEARBY STATIONS MODAL =====
     stationsList: {
         paddingBottom: 20,
     },
@@ -400,6 +404,13 @@ export default StyleSheet.create({
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
+        ...(isWeb && {
+            cursor: 'pointer',
+            transition: 'transform 0.2s',
+            ':hover': {
+                transform: [{ translateY: -2 }],
+            },
+        }),
     },
     stationHeader: {
         flexDirection: 'row',
@@ -447,13 +458,13 @@ export default StyleSheet.create({
         alignItems: 'center',
     },
     aqiValue: {
-        color: colors.surface,
+        color: colors.white,
         fontSize: 20,
         fontWeight: 'bold',
     },
     aqiLevelText: {
         fontSize: 14,
-        color: '#555',
+        color: colors.textSecondary,
         fontWeight: '600',
     },
     stationFooter: {
@@ -482,21 +493,23 @@ export default StyleSheet.create({
         borderRadius: 25,
         alignItems: 'center',
         marginTop: 20,
+        ...(isWeb && {
+            cursor: 'pointer',
+        }),
     },
     backButtonText: {
-        color: colors.surface,
+        color: colors.white,
         fontSize: 16,
         fontWeight: '600',
     },
-    // Scrollable stations preview
     stationsPreviewContainer: {
-        backgroundColor: '#fff',
+        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 15,
         marginTop: 20,
         width: '100%',
         elevation: 3,
-        shadowColor: '#000',
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -510,21 +523,37 @@ export default StyleSheet.create({
     stationsPreviewTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#333',
+        color: colors.text,
     },
     viewAllButton: {
-        backgroundColor: '#f0f0f0',
+        backgroundColor: colors.surfaceLight,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 15,
+        ...(isWeb && {
+            cursor: 'pointer',
+        }),
     },
     viewAllText: {
         fontSize: 12,
-        color: '#666',
+        color: colors.textMuted,
         fontWeight: '500',
     },
     stationsHorizontalScroll: {
         minHeight: 180,
+        ...(isWeb && {
+            '::-webkit-scrollbar': {
+                height: '6px',
+            },
+            '::-webkit-scrollbar-track': {
+                background: colors.background,
+                borderRadius: 3,
+            },
+            '::-webkit-scrollbar-thumb': {
+                background: colors.primary,
+                borderRadius: 3,
+            },
+        }),
     },
     stationsScrollContent: {
         paddingHorizontal: 5,
@@ -532,13 +561,20 @@ export default StyleSheet.create({
     },
     stationPreviewCard: {
         width: 140,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: colors.pale,
         borderRadius: 12,
         padding: 12,
         marginRight: 10,
         borderWidth: 1,
-        borderColor: '#e9ecef',
+        borderColor: colors.borderLight,
         elevation: 2,
+        ...(isWeb && {
+            cursor: 'pointer',
+            transition: 'transform 0.2s',
+            ':hover': {
+                transform: [{ translateY: -2 }],
+            },
+        }),
     },
     stationCardHeader: {
         flexDirection: 'row',
@@ -550,14 +586,14 @@ export default StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 12,
-        backgroundColor: '#e3f2fd',
+        backgroundColor: colors.paleBlue,
         justifyContent: 'center',
         alignItems: 'center',
     },
     stationNumberText: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#1976d2',
+        color: colors.accentBlue,
     },
     aqiIndicator: {
         width: 12,
@@ -567,7 +603,7 @@ export default StyleSheet.create({
     stationNamePreview: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#333',
+        color: colors.text,
         marginBottom: 8,
         height: 36,
     },
@@ -579,7 +615,7 @@ export default StyleSheet.create({
     },
     stationDistancePreview: {
         fontSize: 11,
-        color: '#666',
+        color: colors.textMuted,
     },
     aqiBadgePreview: {
         paddingHorizontal: 10,
@@ -589,13 +625,13 @@ export default StyleSheet.create({
         alignItems: 'center',
     },
     aqiValuePreview: {
-        color: '#fff',
+        color: colors.white,
         fontSize: 14,
         fontWeight: 'bold',
     },
     stationLevelPreview: {
         fontSize: 11,
-        color: '#666',
+        color: colors.textMuted,
         textAlign: 'center',
         fontStyle: 'italic',
     },
