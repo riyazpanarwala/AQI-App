@@ -9,6 +9,7 @@ import { LineChart } from 'react-native-chart-kit';
 import AppConfig from './src/config';
 import styles from './src/styles';
 import translations from './src/translations';
+import colors from './src/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -139,14 +140,23 @@ export default function App() {
     getLocationAndAQI();
   }, []);
 
+  const hexToRgba = (hex, opacity = 1) => {
+    const h = hex.replace('#', '');
+    const bigint = parseInt(h, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
   const getAQIColor = (value) => {
     const num = parseInt(value);
-    if (num <= 50) return '#00e400'; // Green
-    if (num <= 100) return '#ffff00'; // Yellow
-    if (num <= 200) return '#ff7e00'; // Orange
-    if (num <= 300) return '#ff0000'; // Red
-    if (num <= 400) return '#99004c'; // Purple
-    return '#7e0023'; // Maroon
+    if (num <= 50) return colors.aqi.good;
+    if (num <= 100) return colors.aqi.moderate;
+    if (num <= 200) return colors.aqi.poor;
+    if (num <= 300) return colors.aqi.veryPoor;
+    if (num <= 400) return colors.aqi.severe;
+    return colors.aqi.maroon;
   };
 
   const getAQILevel = (value) => {
@@ -301,7 +311,7 @@ export default function App() {
                   backgroundGradientFrom: '#ffffff',
                   backgroundGradientTo: '#ffffff',
                   decimalPlaces: 0,
-                  color: (opacity = 1) => `rgba(255, 126, 0, ${opacity})`,
+                  color: (opacity = 1) => hexToRgba(colors.primary, opacity),
                   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                   style: {
                     borderRadius: 16
@@ -309,7 +319,7 @@ export default function App() {
                   propsForDots: {
                     r: "6",
                     strokeWidth: "2",
-                    stroke: "#ff7e00"
+                    stroke: colors.primary
                   }
                 }}
                 bezier
@@ -483,7 +493,7 @@ export default function App() {
         <Text style={styles.subtitle}>{t.subtitle}</Text>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#ff7e00" />
+          <ActivityIndicator size="large" color={colors.primary} />
         ) : (
           <>
             <Text style={styles.city}>{city}</Text>
