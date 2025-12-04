@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   Text, View, StyleSheet, ActivityIndicator, Platform, TouchableOpacity,
-  Alert, Share, ScrollView, Dimensions, Modal
+  Alert, Share, ScrollView, Dimensions, Modal, FlatList, Image
 } from 'react-native';
 import * as Location from 'expo-location';
 import axios from 'axios';
 import { LineChart } from 'react-native-chart-kit';
 import AppConfig from './src/config';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function App() {
   const [aqi, setAqi] = useState('-');
@@ -18,8 +18,11 @@ export default function App() {
   const [language, setLanguage] = useState('en');
   const [detailedData, setDetailedData] = useState(null);
   const [forecastData, setForecastData] = useState(null);
+  const [nearbyStations, setNearbyStations] = useState([]);
   const [showDetails, setShowDetails] = useState(false);
   const [showForecast, setShowForecast] = useState(false);
+  const [showNearby, setShowNearby] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
 
   // Your free waqi.info token here
   const WAQI_TOKEN = AppConfig.WAQI_TOKEN;
@@ -41,6 +44,7 @@ export default function App() {
       noStation: 'निकटतम स्टेशन नहीं मिला',
       details: 'विस्तृत जानकारी',
       forecast: 'पूर्वानुमान',
+      nearby: 'नजदीकी स्टेशन',
       close: 'बंद करें',
       pollutants: 'प्रदूषक',
       weather: 'मौसम',
@@ -58,7 +62,17 @@ export default function App() {
       no2: 'नाइट्रोजन डाईऑक्साइड',
       o3: 'ओज़ोन',
       co: 'कार्बन मोनोऑक्साइड',
-      so2: 'सल्फर डाईऑक्साइड'
+      so2: 'सल्फर डाईऑक्साइड',
+      stationName: 'स्टेशन नाम',
+      stationDistance: 'दूरी',
+      stationAQI: 'AQI स्तर',
+      loadingStations: 'स्टेशन लोड हो रहे हैं...',
+      noNearbyStations: 'कोई नजदीकी स्टेशन नहीं मिला',
+      stationList: 'नजदीकी वायु गुणवत्ता स्टेशन',
+      back: 'वापस',
+      distanceKm: 'किमी',
+      airQuality: 'वायु गुणवत्ता',
+      lastUpdated: 'अंतिम अपडेट'
     },
     en: {
       title: 'India AQI Live',
@@ -76,6 +90,7 @@ export default function App() {
       noStation: 'No nearby station',
       details: 'Detailed Info',
       forecast: 'Forecast',
+      nearby: 'Nearby Stations',
       close: 'Close',
       pollutants: 'Pollutants',
       weather: 'Weather',
@@ -93,17 +108,70 @@ export default function App() {
       no2: 'NO₂',
       o3: 'O₃',
       co: 'CO',
-      so2: 'SO₂'
+      so2: 'SO₂',
+      stationName: 'Station Name',
+      stationDistance: 'Distance',
+      stationAQI: 'AQI Level',
+      loadingStations: 'Loading stations...',
+      noNearbyStations: 'No nearby stations found',
+      stationList: 'Nearby Air Quality Stations',
+      back: 'Back',
+      distanceKm: 'km',
+      airQuality: 'Air Quality',
+      lastUpdated: 'Last Updated'
     }
   };
 
   const t = translations[language];
 
+  // Function to calculate distance between two coordinates
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+  };
+
+  // Function to get nearby stations
+  const getNearbyStations = async (lat, lon) => {
+    try {
+      const url = AppConfig.buildNearbyStationsUrl(lat, lon, 50); // 50km radius
+      const response = await axios.get(url);
+
+      if (response.data.status === 'ok') {
+        // Filter and sort stations
+        let stations = response.data.data
+          .filter(station => station.aqi !== '-' && station.aqi !== undefined)
+          .map(station => {
+            const distance = calculateDistance(lat, lon, station.lat, station.lon);
+            return {
+              ...station,
+              distance: parseFloat(distance.toFixed(1)),
+              station: station.station || { name: 'Unknown Station' }
+            };
+          })
+          .sort((a, b) => a.distance - b.distance)
+          .slice(0, 20); // Limit to 20 nearest stations
+
+        setNearbyStations(stations);
+      } else {
+        setNearbyStations([]);
+      }
+    } catch (err) {
+      console.error('Error fetching nearby stations:', err);
+      setNearbyStations([]);
+    }
+  };
+
   const getAQI = async (lat, lon) => {
     try {
-      const response = await axios.get(
-        `https://api.waqi.info/feed/geo:${lat};${lon}/?token=${WAQI_TOKEN}`
-      );
+      const apiUrl = AppConfig.buildApiUrl(`/feed/geo:${lat};${lon}`);
+      const response = await axios.get(apiUrl);
       const data = response.data;
 
       if (data.status === 'ok') {
@@ -117,6 +185,9 @@ export default function App() {
           const forecast = aqiData.forecast.daily;
           setForecastData(forecast);
         }
+
+        // Get nearby stations
+        await getNearbyStations(lat, lon);
 
         setError('');
       } else {
@@ -133,6 +204,7 @@ export default function App() {
   const getLocationAndAQI = async () => {
     setLoading(true);
     setError('');
+    setNearbyStations([]);
 
     let location;
     try {
@@ -152,6 +224,7 @@ export default function App() {
 
       const lat = location.coords.latitude;
       const lon = location.coords.longitude;
+      setUserLocation({ lat, lon });
       await getAQI(lat, lon);
     } catch (err) {
       setError(t.errorLocation);
@@ -394,92 +467,249 @@ export default function App() {
     </Modal>
   );
 
+  // Nearby Stations Component
+  const NearbyStationsModal = () => (
+    <Modal
+      visible={showNearby}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowNearby(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t.stationList}</Text>
+            <TouchableOpacity onPress={() => setShowNearby(false)}>
+              <Text style={styles.closeButton}>{t.close}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.currentLocationCard}>
+            <Text style={styles.currentLocationTitle}>{t.airQuality} - {city}</Text>
+            <View style={[styles.currentAQIBadge, { backgroundColor: getAQIColor(aqi) }]}>
+              <Text style={styles.currentAQIText}>AQI: {aqi}</Text>
+              <Text style={styles.currentAQILevel}>{getAQILevel(aqi)}</Text>
+            </View>
+          </View>
+
+          {nearbyStations.length === 0 ? (
+            <View style={styles.noStationsContainer}>
+              <Text style={styles.noStationsText}>{t.noNearbyStations}</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={nearbyStations}
+              keyExtractor={(item, index) => index.toString()}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.stationsList}
+              renderItem={({ item, index }) => (
+                <TouchableOpacity
+                  style={styles.stationCard}
+                  onPress={() => {
+                    // You can implement station details here
+                    Alert.alert(
+                      item.station.name,
+                      `AQI: ${item.aqi}\n${t.stationDistance}: ${item.distance} ${t.distanceKm}\n${t.lastUpdated}: Recent`
+                    );
+                  }}
+                >
+                  <View style={styles.stationHeader}>
+                    <View style={styles.stationIndex}>
+                      <Text style={styles.stationIndexText}>{index + 1}</Text>
+                    </View>
+                    <View style={styles.stationInfo}>
+                      <Text style={styles.stationName} numberOfLines={2}>
+                        {item.station.name}
+                      </Text>
+                      <Text style={styles.stationDistance}>
+                        📍 {item.distance} {t.distanceKm} away
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.stationAQISection}>
+                    <View style={[styles.aqiBadge, { backgroundColor: getAQIColor(item.aqi) }]}>
+                      <Text style={styles.aqiValue}>{item.aqi}</Text>
+                    </View>
+                    <Text style={styles.aqiLevelText}>{getAQILevel(item.aqi)}</Text>
+                  </View>
+
+                  <View style={styles.stationFooter}>
+                    <Text style={styles.stationCoordinates}>
+                      Lat: {item.lat.toFixed(4)}, Lon: {item.lon.toFixed(4)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListHeaderComponent={() => (
+                <Text style={styles.stationsCount}>
+                  {nearbyStations.length} {t.nearby.toLowerCase()} {t.found}
+                </Text>
+              )}
+            />
+          )}
+
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => setShowNearby(false)}
+          >
+            <Text style={styles.backButtonText}>{t.back}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
+
   return (
-    <View style={styles.container}>
-      {/* Language Toggle */}
-      {/*
+    <ScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={true}
+      showsHorizontalScrollIndicator={false}>
+      <View style={styles.container}>
+        {/* Language Toggle */}
+        {/*
       <TouchableOpacity style={styles.langToggle} onPress={() => setLanguage(language === 'hi' ? 'en' : 'hi')}>
         <Text style={styles.langText}>{language === 'hi' ? 'EN' : 'हिं'}</Text>
       </TouchableOpacity>
       */}
 
-      <Text style={styles.title}>{t.title}</Text>
-      <Text style={styles.subtitle}>{t.subtitle}</Text>
+        <Text style={styles.title}>{t.title}</Text>
+        <Text style={styles.subtitle}>{t.subtitle}</Text>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#ff7e00" />
-      ) : (
-        <>
-          <Text style={styles.city}>{city}</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#ff7e00" />
+        ) : (
+          <>
+            <Text style={styles.city}>{city}</Text>
 
-          <View style={[styles.aqiCircle, { backgroundColor: getAQIColor(aqi) }]}>
-            <Text style={styles.aqiText}>{aqi}</Text>
-          </View>
-
-          <Text style={[styles.aqiLevel, { color: getAQIColor(aqi) }]}>
-            {getAQILevel(aqi)}
-          </Text>
-
-          <Text style={styles.healthTip}>{getHealthAdvice(aqi)}</Text>
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          {/* Action Buttons */}
-          <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.actionButton} onPress={getLocationAndAQI}>
-              <Text style={styles.actionButtonText}>{t.refresh}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionButton} onPress={shareAQI}>
-              <Text style={styles.actionButtonText}>{t.share}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Info Buttons */}
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[styles.infoButton, { backgroundColor: '#2196F3' }]}
-              onPress={() => setShowDetails(true)}
-            >
-              <Text style={styles.infoButtonText}>{t.details}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.infoButton, { backgroundColor: '#4CAF50' }]}
-              onPress={() => setShowForecast(true)}
-            >
-              <Text style={styles.infoButtonText}>{t.forecast}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Dominant Pollutant */}
-          {detailedData?.dominentpol && (
-            <View style={styles.dominantContainer}>
-              <Text style={styles.dominantText}>
-                {language === 'hi' ? 'मुख्य प्रदूषक: ' : 'Dominant Pollutant: '}
-                <Text style={{ fontWeight: 'bold' }}>
-                  {detailedData.dominentpol.toUpperCase()}
-                </Text>
-              </Text>
+            <View style={[styles.aqiCircle, { backgroundColor: getAQIColor(aqi) }]}>
+              <Text style={styles.aqiText}>{aqi}</Text>
             </View>
-          )}
-        </>
-      )}
 
-      {/* Modals */}
-      <DetailedInfoModal />
-      <ForecastModal />
-    </View>
+            <Text style={[styles.aqiLevel, { color: getAQIColor(aqi) }]}>
+              {getAQILevel(aqi)}
+            </Text>
+
+            <Text style={styles.healthTip}>{getHealthAdvice(aqi)}</Text>
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            {/* Action Buttons */}
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.actionButton} onPress={getLocationAndAQI}>
+                <Text style={styles.actionButtonText}>{t.refresh}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.actionButton} onPress={shareAQI}>
+                <Text style={styles.actionButtonText}>{t.share}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Info Buttons */}
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.infoButton, { backgroundColor: '#2196F3' }]}
+                onPress={() => setShowDetails(true)}
+              >
+                <Text style={styles.infoButtonText}>{t.details}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.infoButton, { backgroundColor: '#4CAF50' }]}
+                onPress={() => setShowForecast(true)}
+              >
+                <Text style={styles.infoButtonText}>{t.forecast}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.infoButton, { backgroundColor: '#9C27B0' }]}
+                onPress={() => setShowNearby(true)}
+                disabled={nearbyStations.length === 0}
+              >
+                <Text style={styles.infoButtonText}>
+                  {t.nearby} ({nearbyStations.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Dominant Pollutant */}
+            {detailedData?.dominentpol && (
+              <View style={styles.dominantContainer}>
+                <Text style={styles.dominantText}>
+                  {language === 'hi' ? 'मुख्य प्रदूषक: ' : 'Dominant Pollutant: '}
+                  <Text style={{ fontWeight: 'bold' }}>
+                    {detailedData.dominentpol.toUpperCase()}
+                  </Text>
+                </Text>
+              </View>
+            )}
+
+            {/* Quick Stations Preview */}
+            {nearbyStations.length > 0 && (
+              <TouchableOpacity
+                style={styles.stationsPreview}
+                onPress={() => setShowNearby(true)}
+              >
+                <Text style={styles.stationsPreviewTitle}>
+                  {nearbyStations.length} {t.nearby} {t.found}
+                </Text>
+                <View style={styles.previewStations}>
+                  {nearbyStations.map((station, index) => (
+                    <View key={index} style={styles.previewStation}>
+                      <View style={[styles.previewDot, { backgroundColor: getAQIColor(station.aqi) }]} />
+                      <Text style={styles.previewText} numberOfLines={1}>
+                        {station.station.name}
+                      </Text>
+                      <Text style={styles.previewAQI}>{station.aqi}</Text>
+                    </View>
+                  ))}
+                </View>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+
+        {/* Modals */}
+        <NearbyStationsModal />
+        <DetailedInfoModal />
+        <ForecastModal />
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40, // Add padding at bottom
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
     padding: 20,
+  },
+  envBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: '#ff4757',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    zIndex: 1000,
+  },
+  envBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   langToggle: {
     position: 'absolute',
@@ -560,35 +790,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginVertical: 10,
     width: '100%',
+    flexWrap: 'wrap',
   },
   actionButton: {
     backgroundColor: '#ff7e00',
-    paddingHorizontal: 25,
+    paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,
-    marginHorizontal: 8,
+    margin: 5,
     elevation: 3,
-    minWidth: 120,
+    minWidth: 100,
     alignItems: 'center',
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   infoButton: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 20,
-    marginHorizontal: 8,
+    margin: 5,
     elevation: 2,
-    minWidth: 100,
+    minWidth: 90,
     alignItems: 'center',
   },
   infoButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
+    textAlign: 'center',
   },
   dominantContainer: {
     marginTop: 20,
@@ -603,6 +835,63 @@ const styles = StyleSheet.create({
     color: '#555',
     textAlign: 'center',
   },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#666',
+  },
+  // Stations Preview
+  stationsPreview: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginTop: 20,
+    width: '100%',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  stationsPreviewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  previewStations: {
+    marginTop: 5,
+  },
+  previewStation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  previewDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  previewText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#555',
+  },
+  previewAQI: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 10,
+    minWidth: 30,
+    textAlign: 'right',
+  },
   // Modal Styles
   modalOverlay: {
     flex: 1,
@@ -614,26 +903,26 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: height * 0.85,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     paddingBottom: 15,
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
   },
   closeButton: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#ff7e00',
-    fontWeight: '600',
+    fontWeight: 'bold',
     padding: 5,
   },
   section: {
@@ -724,5 +1013,152 @@ const styles = StyleSheet.create({
     color: '#555',
     flex: 1,
     textAlign: 'center',
+  },
+  // Current Location Card in Modal
+  currentLocationCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  currentLocationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  currentAQIBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+    minWidth: 150,
+    justifyContent: 'center',
+  },
+  currentAQIText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  currentAQILevel: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Stations List
+  stationsList: {
+    paddingBottom: 20,
+  },
+  stationsCount: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  stationCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  stationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  stationIndex: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#e3f2fd',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  stationIndexText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1976d2',
+  },
+  stationInfo: {
+    flex: 1,
+  },
+  stationName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  stationDistance: {
+    fontSize: 12,
+    color: '#666',
+  },
+  stationAQISection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  aqiBadge: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  aqiValue: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  aqiLevelText: {
+    fontSize: 14,
+    color: '#555',
+    fontWeight: '600',
+  },
+  stationFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#f5f5f5',
+    paddingTop: 10,
+  },
+  stationCoordinates: {
+    fontSize: 11,
+    color: '#888',
+    textAlign: 'center',
+  },
+  noStationsContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noStationsText: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
+  },
+  backButton: {
+    backgroundColor: '#6c757d',
+    paddingVertical: 12,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
