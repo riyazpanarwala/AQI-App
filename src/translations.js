@@ -1,4 +1,5 @@
-const translations = {
+// src/translations.js
+export default {
     hi: {
         title: 'भारत AQI लाइव',
         subtitle: 'वायु गुणवत्ता सूचकांक',
@@ -15,7 +16,6 @@ const translations = {
         noStation: 'निकटतम स्टेशन नहीं मिला',
         details: 'विस्तृत जानकारी',
         forecast: 'पूर्वानुमान',
-        nearby: 'नजदीकी स्टेशन',
         close: 'बंद करें',
         pollutants: 'प्रदूषक',
         weather: 'मौसम',
@@ -34,6 +34,7 @@ const translations = {
         o3: 'ओज़ोन',
         co: 'कार्बन मोनोऑक्साइड',
         so2: 'सल्फर डाईऑक्साइड',
+        nearby: 'नजदीकी स्टेशन',
         stationName: 'स्टेशन नाम',
         stationDistance: 'दूरी',
         stationAQI: 'AQI स्तर',
@@ -43,7 +44,9 @@ const translations = {
         back: 'वापस',
         distanceKm: 'किमी',
         airQuality: 'वायु गुणवत्ता',
-        lastUpdated: 'अंतिम अपडेट'
+        lastUpdated: 'अंतिम अपडेट',
+        found: 'मिले',
+        viewAll: 'सभी देखें'
     },
     en: {
         title: 'India AQI Live',
@@ -61,7 +64,6 @@ const translations = {
         noStation: 'No nearby station',
         details: 'Detailed Info',
         forecast: 'Forecast',
-        nearby: 'Nearby Stations',
         close: 'Close',
         pollutants: 'Pollutants',
         weather: 'Weather',
@@ -80,6 +82,7 @@ const translations = {
         o3: 'O₃',
         co: 'CO',
         so2: 'SO₂',
+        nearby: 'Nearby Stations',
         stationName: 'Station Name',
         stationDistance: 'Distance',
         stationAQI: 'AQI Level',
@@ -89,8 +92,8 @@ const translations = {
         back: 'Back',
         distanceKm: 'km',
         airQuality: 'Air Quality',
-        lastUpdated: 'Last Updated'
+        lastUpdated: 'Last Updated',
+        found: 'found',
+        viewAll: 'View All'
     }
 };
-
-export default translations;

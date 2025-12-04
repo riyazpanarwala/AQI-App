@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Text, View, ActivityIndicator, Platform, TouchableOpacity,
-  Alert, Share, ScrollView, Dimensions, Modal, FlatList
+  Alert, Share, ScrollView, Dimensions, Modal, FlatList, SafeAreaView
 } from 'react-native';
 import * as Location from 'expo-location';
 import axios from 'axios';
@@ -10,6 +10,13 @@ import AppConfig from './src/config';
 import styles from './src/styles';
 import translations from './src/translations';
 import colors from './src/colors';
+import {
+  calculateDistance,
+  getAQIColor,
+  getAQILevel,
+  getHealthAdvice,
+  hexToRgba
+} from './src/utils';
 
 const { width } = Dimensions.get('window');
 
@@ -28,19 +35,6 @@ export default function App() {
   const [userLocation, setUserLocation] = useState(null);
 
   const t = translations[language];
-
-  // Function to calculate distance between two coordinates
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in km
-  };
 
   // Function to get nearby stations
   const getNearbyStations = async (lat, lon) => {
@@ -140,46 +134,8 @@ export default function App() {
     getLocationAndAQI();
   }, []);
 
-  const hexToRgba = (hex, opacity = 1) => {
-    const h = hex.replace('#', '');
-    const bigint = parseInt(h, 16);
-    const r = (bigint >> 16) & 255;
-    const g = (bigint >> 8) & 255;
-    const b = bigint & 255;
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-  };
-
-  const getAQIColor = (value) => {
-    const num = parseInt(value);
-    if (num <= 50) return colors.aqi.good;
-    if (num <= 100) return colors.aqi.moderate;
-    if (num <= 200) return colors.aqi.poor;
-    if (num <= 300) return colors.aqi.veryPoor;
-    if (num <= 400) return colors.aqi.severe;
-    return colors.aqi.maroon;
-  };
-
-  const getAQILevel = (value) => {
-    const num = parseInt(value);
-    if (num <= 50) return t.good;
-    if (num <= 100) return t.moderate;
-    if (num <= 200) return t.poor;
-    if (num <= 300) return t.veryPoor;
-    return t.severe;
-  };
-
-  const getHealthAdvice = (aqiValue) => {
-    const num = parseInt(aqiValue);
-    if (num <= 50) return t.healthTip;
-    if (num <= 100) return 'Sensitive people should limit outdoor activities';
-    if (num <= 150) return 'Everyone should reduce prolonged outdoor exertion';
-    if (num <= 200) return 'Avoid outdoor activities, especially for sensitive groups';
-    if (num <= 300) return 'Health alert: Avoid all outdoor activities';
-    return 'Emergency conditions: Remain indoors with air purifiers';
-  };
-
   const shareAQI = async () => {
-    const message = `${t.title}: ${aqi} (${getAQILevel(aqi)}) in ${city}.\n${getHealthAdvice(aqi)}\n#AQIIndia #AirQuality`;
+    const message = `${t.title}: ${aqi} (${getAQILevel(aqi, t)}) in ${city}.\n${getHealthAdvice(aqi, t)}\n#AQIIndia #AirQuality`;
 
     try {
       if (Platform.OS === 'web') {
@@ -227,7 +183,7 @@ export default function App() {
               {detailedData?.iaqi && Object.entries(detailedData.iaqi).map(([key, value]) => (
                 <View key={key} style={styles.pollutantRow}>
                   <Text style={styles.pollutantLabel}>{t[key] || key.toUpperCase()}:</Text>
-                  <Text style={[styles.pollutantValue, { color: getAQIColor(value.v) }]}>
+                  <Text style={[styles.pollutantValue, { color: getAQIColor(value.v, t) }]}>
                     {value.v.toFixed(1)}
                   </Text>
                 </View>
@@ -266,7 +222,7 @@ export default function App() {
             {/* Health Advice */}
             <View style={styles.healthSection}>
               <Text style={styles.sectionTitle}>{t.healthAdvice}</Text>
-              <Text style={styles.healthText}>{getHealthAdvice(aqi)}</Text>
+              <Text style={styles.healthText}>{getHealthAdvice(aqi, t)}</Text>
             </View>
           </ScrollView>
         </View>
@@ -402,7 +358,7 @@ export default function App() {
             <Text style={styles.currentLocationTitle}>{t.airQuality} - {city}</Text>
             <View style={[styles.currentAQIBadge, { backgroundColor: getAQIColor(aqi) }]}>
               <Text style={styles.currentAQIText}>AQI: {aqi}</Text>
-              <Text style={styles.currentAQILevel}>{getAQILevel(aqi)}</Text>
+              <Text style={styles.currentAQILevel}>{getAQILevel(aqi, t)}</Text>
             </View>
           </View>
 
@@ -445,7 +401,7 @@ export default function App() {
                     <View style={[styles.aqiBadge, { backgroundColor: getAQIColor(item.aqi) }]}>
                       <Text style={styles.aqiValue}>{item.aqi}</Text>
                     </View>
-                    <Text style={styles.aqiLevelText}>{getAQILevel(item.aqi)}</Text>
+                    <Text style={styles.aqiLevelText}>{getAQILevel(item.aqi, t)}</Text>
                   </View>
 
                   <View style={styles.stationFooter}>
@@ -476,121 +432,161 @@ export default function App() {
 
 
   return (
-    <ScrollView
-      style={styles.scrollContainer}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={true}
-      showsHorizontalScrollIndicator={false}>
-      <View style={styles.container}>
-        {/* Language Toggle */}
-        {/*
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+        showsHorizontalScrollIndicator={false}>
+        <View style={styles.container}>
+          {/* Language Toggle */}
+          {/*
       <TouchableOpacity style={styles.langToggle} onPress={() => setLanguage(language === 'hi' ? 'en' : 'hi')}>
         <Text style={styles.langText}>{language === 'hi' ? 'EN' : 'हिं'}</Text>
       </TouchableOpacity>
       */}
 
-        <Text style={styles.title}>{t.title}</Text>
-        <Text style={styles.subtitle}>{t.subtitle}</Text>
+          <Text style={styles.title}>{t.title}</Text>
+          <Text style={styles.subtitle}>{t.subtitle}</Text>
 
-        {loading ? (
-          <ActivityIndicator size="large" color={colors.primary} />
-        ) : (
-          <>
-            <Text style={styles.city}>{city}</Text>
+          {loading ? (
+            <ActivityIndicator size="large" color={colors.primary} />
+          ) : (
+            <>
+              <Text style={styles.city}>{city}</Text>
 
-            <View style={[styles.aqiCircle, { backgroundColor: getAQIColor(aqi) }]}>
-              <Text style={styles.aqiText}>{aqi}</Text>
-            </View>
-
-            <Text style={[styles.aqiLevel, { color: getAQIColor(aqi) }]}>
-              {getAQILevel(aqi)}
-            </Text>
-
-            <Text style={styles.healthTip}>{getHealthAdvice(aqi)}</Text>
-
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            {/* Action Buttons */}
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.actionButton} onPress={getLocationAndAQI}>
-                <Text style={styles.actionButtonText}>{t.refresh}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionButton} onPress={shareAQI}>
-                <Text style={styles.actionButtonText}>{t.share}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Info Buttons */}
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={[styles.infoButton, { backgroundColor: '#2196F3' }]}
-                onPress={() => setShowDetails(true)}
-              >
-                <Text style={styles.infoButtonText}>{t.details}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.infoButton, { backgroundColor: '#4CAF50' }]}
-                onPress={() => setShowForecast(true)}
-              >
-                <Text style={styles.infoButtonText}>{t.forecast}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.infoButton, { backgroundColor: '#9C27B0' }]}
-                onPress={() => setShowNearby(true)}
-                disabled={nearbyStations.length === 0}
-              >
-                <Text style={styles.infoButtonText}>
-                  {t.nearby} ({nearbyStations.length})
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Dominant Pollutant */}
-            {detailedData?.dominentpol && (
-              <View style={styles.dominantContainer}>
-                <Text style={styles.dominantText}>
-                  {language === 'hi' ? 'मुख्य प्रदूषक: ' : 'Dominant Pollutant: '}
-                  <Text style={{ fontWeight: 'bold' }}>
-                    {detailedData.dominentpol.toUpperCase()}
-                  </Text>
-                </Text>
+              <View style={[styles.aqiCircle, { backgroundColor: getAQIColor(aqi) }]}>
+                <Text style={styles.aqiText}>{aqi}</Text>
               </View>
-            )}
 
-            {/* Quick Stations Preview */}
-            {nearbyStations.length > 0 && (
-              <TouchableOpacity
-                style={styles.stationsPreview}
-                onPress={() => setShowNearby(true)}
-              >
-                <Text style={styles.stationsPreviewTitle}>
-                  {nearbyStations.length} {t.nearby} {t.found}
-                </Text>
-                <View style={styles.previewStations}>
-                  {nearbyStations.map((station, index) => (
-                    <View key={index} style={styles.previewStation}>
-                      <View style={[styles.previewDot, { backgroundColor: getAQIColor(station.aqi) }]} />
-                      <Text style={styles.previewText} numberOfLines={1}>
-                        {station.station.name}
-                      </Text>
-                      <Text style={styles.previewAQI}>{station.aqi}</Text>
-                    </View>
-                  ))}
+              <Text style={[styles.aqiLevel, { color: getAQIColor(aqi) }]}>
+                {getAQILevel(aqi, t)}
+              </Text>
+
+              <Text style={styles.healthTip}>{getHealthAdvice(aqi, t)}</Text>
+
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+
+              {/* Action Buttons */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.actionButton} onPress={getLocationAndAQI}>
+                  <Text style={styles.actionButtonText}>{t.refresh}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionButton} onPress={shareAQI}>
+                  <Text style={styles.actionButtonText}>{t.share}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Info Buttons */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.infoButton, { backgroundColor: '#2196F3' }]}
+                  onPress={() => setShowDetails(true)}
+                >
+                  <Text style={styles.infoButtonText}>{t.details}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.infoButton, { backgroundColor: '#4CAF50' }]}
+                  onPress={() => setShowForecast(true)}
+                >
+                  <Text style={styles.infoButtonText}>{t.forecast}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.infoButton, { backgroundColor: '#9C27B0' }]}
+                  onPress={() => setShowNearby(true)}
+                  disabled={nearbyStations.length === 0}
+                >
+                  <Text style={styles.infoButtonText}>
+                    {t.nearby} ({nearbyStations.length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Dominant Pollutant */}
+              {detailedData?.dominentpol && (
+                <View style={styles.dominantContainer}>
+                  <Text style={styles.dominantText}>
+                    {language === 'hi' ? 'मुख्य प्रदूषक: ' : 'Dominant Pollutant: '}
+                    <Text style={{ fontWeight: 'bold' }}>
+                      {detailedData.dominentpol.toUpperCase()}
+                    </Text>
+                  </Text>
                 </View>
-              </TouchableOpacity>
-            )}
-          </>
-        )}
+              )}
 
-        {/* Modals */}
-        <NearbyStationsModal />
-        <DetailedInfoModal />
-        <ForecastModal />
-      </View>
-    </ScrollView>
+              {/* Scrollable Stations Preview */}
+              {nearbyStations.length > 0 && (
+                <View style={styles.stationsPreviewContainer}>
+                  <View style={styles.stationsPreviewHeader}>
+                    <Text style={styles.stationsPreviewTitle}>
+                      {nearbyStations.length} {t.nearby} {t.found}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.viewAllButton}
+                      onPress={() => setShowNearby(true)}
+                    >
+                      <Text style={styles.viewAllText}>{t.viewAll}</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={Platform.OS === 'web'}
+                    style={styles.stationsHorizontalScroll}
+                    contentContainerStyle={styles.stationsScrollContent}
+                  >
+                    {nearbyStations.map((station, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.stationPreviewCard}
+                        onPress={() => {
+                          Alert.alert(
+                            station.station.name,
+                            `AQI: ${station.aqi}\n${t.stationDistance}: ${station.distance} ${t.distanceKm}\n${t.lastUpdated}: Recent`
+                          );
+                        }}
+                      >
+                        <View style={styles.stationCardHeader}>
+                          <View style={styles.stationNumberBadge}>
+                            <Text style={styles.stationNumberText}>{index + 1}</Text>
+                          </View>
+                          <View style={[styles.aqiIndicator, { backgroundColor: getAQIColor(station.aqi, colors) }]} />
+                        </View>
+
+                        <Text style={styles.stationNamePreview} numberOfLines={2}>
+                          {station.station.name}
+                        </Text>
+
+                        <View style={styles.stationInfoPreview}>
+                          <Text style={styles.stationDistancePreview}>
+                            📍 {station.distance} {t.distanceKm}
+                          </Text>
+                          <View style={[styles.aqiBadgePreview, { backgroundColor: getAQIColor(station.aqi, colors) }]}>
+                            <Text style={styles.aqiValuePreview}>{station.aqi}</Text>
+                          </View>
+                        </View>
+
+                        <Text style={styles.stationLevelPreview}>
+                          {getAQILevel(station.aqi, t)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Modals */}
+      <NearbyStationsModal />
+      <DetailedInfoModal />
+      <ForecastModal />
+    </SafeAreaView>
   );
 }
 

@@ -4,6 +4,10 @@ import colors from './colors';
 const { height } = Dimensions.get('window');
 
 export default StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: colors.background,
+    },
     scrollContainer: {
         flex: 1,
         backgroundColor: colors.background,
@@ -483,5 +487,116 @@ export default StyleSheet.create({
         color: colors.surface,
         fontSize: 16,
         fontWeight: '600',
+    },
+    // Scrollable stations preview
+    stationsPreviewContainer: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 15,
+        marginTop: 20,
+        width: '100%',
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    stationsPreviewHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    stationsPreviewTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+    },
+    viewAllButton: {
+        backgroundColor: '#f0f0f0',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 15,
+    },
+    viewAllText: {
+        fontSize: 12,
+        color: '#666',
+        fontWeight: '500',
+    },
+    stationsHorizontalScroll: {
+        minHeight: 180,
+    },
+    stationsScrollContent: {
+        paddingHorizontal: 5,
+        paddingBottom: 10,
+    },
+    stationPreviewCard: {
+        width: 140,
+        backgroundColor: '#f8f9fa',
+        borderRadius: 12,
+        padding: 12,
+        marginRight: 10,
+        borderWidth: 1,
+        borderColor: '#e9ecef',
+        elevation: 2,
+    },
+    stationCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    stationNumberBadge: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#e3f2fd',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    stationNumberText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#1976d2',
+    },
+    aqiIndicator: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+    },
+    stationNamePreview: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 8,
+        height: 36,
+    },
+    stationInfoPreview: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    stationDistancePreview: {
+        fontSize: 11,
+        color: '#666',
+    },
+    aqiBadgePreview: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        minWidth: 45,
+        alignItems: 'center',
+    },
+    aqiValuePreview: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    stationLevelPreview: {
+        fontSize: 11,
+        color: '#666',
+        textAlign: 'center',
+        fontStyle: 'italic',
     },
 });
