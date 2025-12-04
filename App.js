@@ -170,14 +170,13 @@ export default function App() {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t.details}</Text>
+            <TouchableOpacity onPress={() => setShowDetails(false)}>
+              <Text style={styles.closeButton}>{t.close}</Text>
+            </TouchableOpacity>
+          </View>
           <ScrollView>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t.details}</Text>
-              <TouchableOpacity onPress={() => setShowDetails(false)}>
-                <Text style={styles.closeButton}>{t.close}</Text>
-              </TouchableOpacity>
-            </View>
-
             {/* Pollutant Levels */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t.pollutants}</Text>
@@ -240,14 +239,13 @@ export default function App() {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t.forecastChart}</Text>
+            <TouchableOpacity onPress={() => setShowForecast(false)}>
+              <Text style={styles.closeButton}>{t.close}</Text>
+            </TouchableOpacity>
+          </View>
           <ScrollView>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t.forecastChart}</Text>
-              <TouchableOpacity onPress={() => setShowForecast(false)}>
-                <Text style={styles.closeButton}>{t.close}</Text>
-              </TouchableOpacity>
-            </View>
-
             {forecastData?.pm25 && (
               <View>
                 {/* PM2.5 Forecast Chart */}
