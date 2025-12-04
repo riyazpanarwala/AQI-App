@@ -3,7 +3,7 @@ export default {
     // AQI Colors
     aqi: {
         good: '#00e400',
-        moderate: '#ffff00',
+        moderate: '#FFC107',
         poor: '#ff7e00',
         veryPoor: '#ff0000',
         severe: '#99004c',
