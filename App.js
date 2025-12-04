@@ -170,14 +170,13 @@ export default function App() {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t.details}</Text>
+            <TouchableOpacity onPress={() => setShowDetails(false)}>
+              <Text style={styles.closeButton}>{t.close}</Text>
+            </TouchableOpacity>
+          </View>
           <ScrollView>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t.details}</Text>
-              <TouchableOpacity onPress={() => setShowDetails(false)}>
-                <Text style={styles.closeButton}>{t.close}</Text>
-              </TouchableOpacity>
-            </View>
-
             {/* Pollutant Levels */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t.pollutants}</Text>
@@ -246,75 +245,55 @@ export default function App() {
               <Text style={styles.closeButton}>{t.close}</Text>
             </TouchableOpacity>
           </View>
-
-          {forecastData?.pm25 && (
-            <View>
-              {/* PM2.5 Forecast Chart */}
-              <LineChart
-                data={{
-                  labels: forecastData.pm25.slice(0, 5).map(day =>
-                    new Date(day.day).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
-                      weekday: 'short'
-                    })
-                  ),
-                  datasets: [{
-                    data: forecastData.pm25.slice(0, 5).map(day => day.avg)
-                  }]
-                }}
-                width={width - 60}
-                height={220}
-                chartConfig={{
-                  backgroundColor: colors.white,
-                  backgroundGradientFrom: colors.white,
-                  backgroundGradientTo: colors.white,
-                  decimalPlaces: 0,
-                  color: (opacity = 1) => hexToRgba(colors.primary, opacity),
-                  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                  style: {
+          <ScrollView>
+            {forecastData?.pm25 && (
+              <View>
+                {/* PM2.5 Forecast Chart */}
+                <LineChart
+                  data={{
+                    labels: forecastData.pm25.slice(0, 5).map(day =>
+                      new Date(day.day).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
+                        weekday: 'short'
+                      })
+                    ),
+                    datasets: [{
+                      data: forecastData.pm25.slice(0, 5).map(day => day.avg)
+                    }]
+                  }}
+                  width={width - 60}
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: colors.white,
+                    backgroundGradientFrom: colors.white,
+                    backgroundGradientTo: colors.white,
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => hexToRgba(colors.primary, opacity),
+                    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                    style: {
+                      borderRadius: 16
+                    },
+                    propsForDots: {
+                      r: "6",
+                      strokeWidth: "2",
+                      stroke: colors.primary
+                    }
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: 8,
                     borderRadius: 16
-                  },
-                  propsForDots: {
-                    r: "6",
-                    strokeWidth: "2",
-                    stroke: colors.primary
-                  }
-                }}
-                bezier
-                style={{
-                  marginVertical: 8,
-                  borderRadius: 16
-                }}
-              />
+                  }}
+                />
 
-              {/* PM2.5 Forecast Table */}
-              <View style={styles.forecastTable}>
-                <View style={styles.tableHeader}>
-                  <Text style={styles.tableHeaderText}>{t.dailyAvg}</Text>
-                  <Text style={styles.tableHeaderText}>{t.max}</Text>
-                  <Text style={styles.tableHeaderText}>{t.min}</Text>
-                </View>
-                {forecastData.pm25.slice(0, 5).map((day, index) => (
-                  <View key={index} style={styles.tableRow}>
-                    <Text style={styles.tableCell}>
-                      {new Date(day.day).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
-                        day: 'numeric',
-                        month: 'short'
-                      })}
-                    </Text>
-                    <Text style={[styles.tableCell, { color: getAQIColor(day.avg) }]}>
-                      {day.avg}
-                    </Text>
-                    <Text style={styles.tableCell}>{day.max}</Text>
-                    <Text style={styles.tableCell}>{day.min}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {/* PM10 Forecast Table */}
-              {forecastData?.pm10 && (
+                {/* PM2.5 Forecast Table */}
                 <View style={styles.forecastTable}>
-                  <Text style={styles.sectionTitle}>PM10 Forecast (μg/m³)</Text>
-                  {forecastData.pm10.slice(0, 5).map((day, index) => (
+                  <Text style={styles.sectionTitle}>PM2.5 Forecast</Text>
+                  <View style={styles.tableHeader}>
+                    <Text style={styles.tableHeaderText}>{t.dailyAvg}</Text>
+                    <Text style={styles.tableHeaderText}>{t.max}</Text>
+                    <Text style={styles.tableHeaderText}>{t.min}</Text>
+                  </View>
+                  {forecastData.pm25.slice(0, 5).map((day, index) => (
                     <View key={index} style={styles.tableRow}>
                       <Text style={styles.tableCell}>
                         {new Date(day.day).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
@@ -330,9 +309,36 @@ export default function App() {
                     </View>
                   ))}
                 </View>
-              )}
-            </View>
-          )}
+
+                {/* PM10 Forecast Table */}
+                {forecastData?.pm10 && (
+                  <View style={styles.forecastTable}>
+                    <Text style={styles.sectionTitle}>PM10 Forecast (μg/m³)</Text>
+                    <View style={styles.tableHeader}>
+                      <Text style={styles.tableHeaderText}>{t.dailyAvg}</Text>
+                      <Text style={styles.tableHeaderText}>{t.max}</Text>
+                      <Text style={styles.tableHeaderText}>{t.min}</Text>
+                    </View>
+                    {forecastData.pm10.slice(0, 5).map((day, index) => (
+                      <View key={index} style={styles.tableRow}>
+                        <Text style={styles.tableCell}>
+                          {new Date(day.day).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
+                            day: 'numeric',
+                            month: 'short'
+                          })}
+                        </Text>
+                        <Text style={[styles.tableCell, { color: getAQIColor(day.avg) }]}>
+                          {day.avg}
+                        </Text>
+                        <Text style={styles.tableCell}>{day.max}</Text>
+                        <Text style={styles.tableCell}>{day.min}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+          </ScrollView>
         </View>
       </View>
     </Modal>
