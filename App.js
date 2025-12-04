@@ -287,6 +287,7 @@ export default function App() {
 
                 {/* PM2.5 Forecast Table */}
                 <View style={styles.forecastTable}>
+                  <Text style={styles.sectionTitle}>PM2.5 Forecast</Text>
                   <View style={styles.tableHeader}>
                     <Text style={styles.tableHeaderText}>{t.dailyAvg}</Text>
                     <Text style={styles.tableHeaderText}>{t.max}</Text>
@@ -313,6 +314,11 @@ export default function App() {
                 {forecastData?.pm10 && (
                   <View style={styles.forecastTable}>
                     <Text style={styles.sectionTitle}>PM10 Forecast (μg/m³)</Text>
+                    <View style={styles.tableHeader}>
+                      <Text style={styles.tableHeaderText}>{t.dailyAvg}</Text>
+                      <Text style={styles.tableHeaderText}>{t.max}</Text>
+                      <Text style={styles.tableHeaderText}>{t.min}</Text>
+                    </View>
                     {forecastData.pm10.slice(0, 5).map((day, index) => (
                       <View key={index} style={styles.tableRow}>
                         <Text style={styles.tableCell}>
