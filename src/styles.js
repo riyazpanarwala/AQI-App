@@ -68,14 +68,10 @@ export default StyleSheet.create({
         padding: 10,
         backgroundColor: colors.surface,
         borderRadius: 20,
-        elevation: 5,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
         ...(isWeb && {
             position: 'fixed',
             cursor: 'pointer',
+            boxShadow: '0px 2px 6px rgba(0,0,0,0.15)',
         }),
     },
     langText: {
@@ -110,11 +106,9 @@ export default StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginVertical: 20,
-        elevation: 10,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
+        ...(isWeb && {
+            boxShadow: '0px 4px 12px rgba(0,0,0,0.25)',
+        }),
     },
     aqiText: {
         fontSize: 64,
@@ -211,13 +205,11 @@ export default StyleSheet.create({
         borderRadius: 16,
         padding: 25,
         alignItems: 'center',
-        elevation: 4,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
         marginBottom: 25,
         width: '100%',
+        ...(isWeb && {
+            boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
+        }),
     },
 
     // ===== MODAL STYLES =====
@@ -400,13 +392,9 @@ export default StyleSheet.create({
         marginBottom: 12,
         borderWidth: 1,
         borderColor: colors.surfaceLight,
-        elevation: 2,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
         ...(isWeb && {
             cursor: 'pointer',
+            boxShadow: '0px 2px 6px rgba(0,0,0,0.10)',
             transition: 'transform 0.2s',
             ':hover': {
                 transform: [{ translateY: -2 }],
@@ -509,11 +497,9 @@ export default StyleSheet.create({
         padding: 15,
         marginTop: 20,
         width: '100%',
-        elevation: 3,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        ...(isWeb && {
+            boxShadow: '0px 3px 10px rgba(0,0,0,0.15)',
+        }),
     },
     stationsPreviewHeader: {
         flexDirection: 'row',
