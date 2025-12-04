@@ -31,6 +31,7 @@ export default StyleSheet.create({
         backgroundColor: colors.background,
         padding: 20,
         ...(isWeb && {
+            width: '100%',
             maxWidth: 800,
             marginHorizontal: 'auto',
         }),

@@ -264,9 +264,9 @@ export default function App() {
                 width={width - 60}
                 height={220}
                 chartConfig={{
-                  backgroundColor: '#ffffff',
-                  backgroundGradientFrom: '#ffffff',
-                  backgroundGradientTo: '#ffffff',
+                  backgroundColor: colors.white,
+                  backgroundGradientFrom: colors.white,
+                  backgroundGradientTo: colors.white,
                   decimalPlaces: 0,
                   color: (opacity = 1) => hexToRgba(colors.primary, opacity),
                   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -484,21 +484,21 @@ export default function App() {
                 {/* Info Buttons */}
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
-                    style={[styles.infoButton, { backgroundColor: '#2196F3' }]}
+                    style={[styles.infoButton, { backgroundColor: colors.secondary }]}
                     onPress={() => setShowDetails(true)}
                   >
                     <Text style={styles.infoButtonText}>{t.details}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.infoButton, { backgroundColor: '#4CAF50' }]}
+                    style={[styles.infoButton, { backgroundColor: colors.success }]}
                     onPress={() => setShowForecast(true)}
                   >
                     <Text style={styles.infoButtonText}>{t.forecast}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.infoButton, { backgroundColor: '#9C27B0' }]}
+                    style={[styles.infoButton, { backgroundColor: colors.info }]}
                     onPress={() => setShowNearby(true)}
                     disabled={nearbyStations.length === 0}
                   >
@@ -556,7 +556,7 @@ export default function App() {
                             <View style={styles.stationNumberBadge}>
                               <Text style={styles.stationNumberText}>{index + 1}</Text>
                             </View>
-                            <View style={[styles.aqiIndicator, { backgroundColor: getAQIColor(station.aqi, colors) }]} />
+                            <View style={[styles.aqiIndicator, { backgroundColor: getAQIColor(station.aqi) }]} />
                           </View>
 
                           <Text style={styles.stationNamePreview} numberOfLines={2}>
@@ -567,7 +567,7 @@ export default function App() {
                             <Text style={styles.stationDistancePreview}>
                               {station.distance} {t.distanceKm}
                             </Text>
-                            <View style={[styles.aqiBadgePreview, { backgroundColor: getAQIColor(station.aqi, colors) }]}>
+                            <View style={[styles.aqiBadgePreview, { backgroundColor: getAQIColor(station.aqi) }]}>
                               <Text style={styles.aqiValuePreview}>{station.aqi}</Text>
                             </View>
                           </View>
