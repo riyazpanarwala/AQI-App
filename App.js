@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Text, View, ActivityIndicator, Platform, TouchableOpacity,
-  Alert, Share, ScrollView, Dimensions, Modal, FlatList, TextInput
+  Alert, Share, ScrollView, Dimensions, Modal, FlatList, TextInput,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
@@ -35,6 +36,8 @@ export default function App() {
   const [showNearby, setShowNearby] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const t = translations[language];
 
@@ -148,7 +151,7 @@ export default function App() {
       return;
     }
 
-    setLoading(true);
+    setSearchLoading(true);
     setError('');
 
     try {
@@ -195,7 +198,7 @@ export default function App() {
       console.error('Search error:', err);
       setError(t.errorNetwork);
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
@@ -251,7 +254,7 @@ export default function App() {
               {detailedData?.iaqi && Object.entries(detailedData.iaqi).map(([key, value]) => (
                 <View key={key} style={styles.pollutantRow}>
                   <Text style={styles.pollutantLabel}>{t[key] || key.toUpperCase()}:</Text>
-                  <Text style={[styles.pollutantValue, { color: getAQIColor(value.v, t) }]}>
+                  <Text style={[styles.pollutantValue, { color: getAQIColor(value.v) }]}>
                     {value.v.toFixed(1)}
                   </Text>
                 </View>
@@ -510,6 +513,18 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => {
+                setRefreshing(true);
+                await getLocationAndAQI();
+                setRefreshing(false);
+              }}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
           style={styles.scrollContainer}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={Platform.OS === 'web'}
@@ -540,10 +555,15 @@ export default function App() {
                 accessibilityLabel="city-search-input"
               />
               <TouchableOpacity
-                disabled={loading}
-                style={[styles.actionButton, loading && { opacity: 0.5 }]}
-                onPress={searchByCity}>
-                <Text style={styles.actionButtonText}>{t.search}</Text>
+                disabled={searchLoading || loading}
+                style={[styles.actionButton, (searchLoading || loading) && { opacity: 0.5 }]}
+                onPress={searchByCity}
+              >
+                {searchLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.actionButtonText}>{t.search}</Text>
+                )}
               </TouchableOpacity>
             </View>
 
