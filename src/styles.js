@@ -640,4 +640,97 @@ export default StyleSheet.create({
         textAlign: 'center',
         fontStyle: 'italic',
     },
+
+    // City header with favorite
+    cityHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
+    },
+    locationsButton: {
+        marginLeft: 10,
+        padding: 5,
+    },
+    locationIcon: {
+        fontSize: 24,
+        marginBottom: 20,
+    },
+    savedLocationsList: {
+        paddingBottom: 20,
+    },
+    savedLocationItem: {
+        flexDirection: 'row',
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 15,
+        marginBottom: 10,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
+        elevation: 2,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+    },
+    savedLocationContent: {
+        flex: 1,
+    },
+    savedLocationCity: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: 5,
+    },
+    savedLocationDetails: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 5,
+    },
+    savedLocationAqiBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 15,
+    },
+    savedLocationAqiText: {
+        color: colors.white,
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    savedLocationLevel: {
+        fontSize: 12,
+        color: colors.textMuted,
+        fontStyle: 'italic',
+    },
+    savedLocationTime: {
+        fontSize: 10,
+        color: colors.textMuted2,
+    },
+    removeSavedLocationButton: {
+        padding: 10,
+    },
+    removeSavedLocationText: {
+        fontSize: 18,
+        color: colors.danger,
+        fontWeight: 'bold',
+    },
+    emptyState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 40,
+    },
+    emptyStateText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: 10,
+    },
+    emptyStateSubtext: {
+        fontSize: 14,
+        color: colors.textMuted,
+        textAlign: 'center',
+        paddingHorizontal: 20,
+    },
 });

@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Text, View, ActivityIndicator, Platform, TouchableOpacity,
-  Alert, Share, ScrollView, Dimensions, Modal, FlatList, TextInput
+  Alert, Share, ScrollView, Dimensions, Modal, FlatList, TextInput,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import axios from 'axios';
 import { LineChart } from 'react-native-chart-kit';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppConfig from './src/config';
 import styles from './src/styles';
 import translations from './src/translations';
@@ -22,6 +24,7 @@ import {
 const { width } = Dimensions.get('window');
 
 export default function App() {
+  const hasMounted = useRef(false);
   const [aqi, setAqi] = useState('-');
   const [city, setCity] = useState('Getting location...');
   const [loading, setLoading] = useState(true);
@@ -34,9 +37,54 @@ export default function App() {
   const [showForecast, setShowForecast] = useState(false);
   const [showNearby, setShowNearby] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [displayedLocation, setDisplayedLocation] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  // Saved Locations states
+  const [savedLocations, setSavedLocations] = useState([]);
+  const [showSavedLocations, setShowSavedLocations] = useState(false);
+  const [isCurrentSaved, setIsCurrentSaved] = useState(false);
 
   const t = translations[language];
+
+  const loadSavedLocationFromStorage = async () => {
+    try {
+      const locationsData = await AsyncStorage.getItem('aqi_locations');
+      if (locationsData) {
+        try {
+          const parsed = JSON.parse(locationsData);
+          if (Array.isArray(parsed)) {
+            setSavedLocations(parsed);
+          }
+        } catch (parseError) {
+          console.error('Error parsing locations data:', parseError);
+          // Optionally clear corrupted data
+          await AsyncStorage.removeItem('aqi_locations');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading locations:', error);
+    }
+  };
+
+  // Save Locations to storage whenever they change
+  useEffect(() => {
+    const saveLocationsToStorage = async () => {
+      try {
+        await AsyncStorage.setItem('aqi_locations', JSON.stringify(savedLocations));
+      } catch (error) {
+        console.error('Error saving locations:', error);
+      }
+    };
+
+    if (hasMounted.current) {
+      saveLocationsToStorage();
+    } else {
+      hasMounted.current = true;
+    }
+  }, [savedLocations]);
 
   // Function to get nearby stations
   const getNearbyStations = async (lat, lon) => {
@@ -80,6 +128,7 @@ export default function App() {
         setAqi(aqiData.aqi.toString());
         setCity(aqiData.city.name);
         setDetailedData(aqiData);
+        setDisplayedLocation({ lat, lon });
 
         // Extract forecast data
         if (aqiData.forecast && aqiData.forecast.daily) {
@@ -148,7 +197,7 @@ export default function App() {
       return;
     }
 
-    setLoading(true);
+    setSearchLoading(true);
     setError('');
 
     try {
@@ -173,6 +222,7 @@ export default function App() {
             // optionally fetch nearby for that location
             if (aqiData.city && aqiData.city.geo && Array.isArray(aqiData.city.geo) && aqiData.city.geo.length >= 2) {
               const [lat, lon] = aqiData.city.geo;
+              setDisplayedLocation({ lat, lon });
               getNearbyStations(lat, lon);
             }
             setError('');
@@ -183,7 +233,8 @@ export default function App() {
         } else {
           // Fallback: use the search result aqi and station name
           setAqi(String(first.aqi ?? '-'));
-          setCity(first.station?.name || searchQuery);
+          const cityName = first.station?.name || searchQuery;
+          setCity(cityName);
           setDetailedData(null);
           setNearbyStations([]);
         }
@@ -195,11 +246,65 @@ export default function App() {
       console.error('Search error:', err);
       setError(t.errorNetwork);
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
+  const saveLocation = () => {
+    if (!city || !displayedLocation || !displayedLocation.lat || !displayedLocation.lon) {
+      Alert.alert('Cannot add to locations', 'Location data is not available.');
+      return;
+    }
+
+    const newLocation = {
+      id: Date.now().toString(),
+      city,
+      aqi,
+      lat: displayedLocation.lat,
+      lon: displayedLocation.lon,
+      timestamp: new Date().toISOString(),
+      level: getAQILevel(aqi, t)
+    };
+
+    setSavedLocations(prev => {
+      // Check if already exists
+      const exists = prev.some(loc => loc.city === city);
+      if (exists) {
+        Alert.alert('Already in saved locations', `${city} is already in your locations.`);
+        return prev;
+      }
+
+      Alert.alert('Added to saved locations', `${city} has been added to your locations.`);
+      setIsCurrentSaved(true);
+      return [newLocation, ...prev];
+    });
+  };
+
+  const removeSavedLocation = () => {
+    setSavedLocations(prev => prev.filter(fav => fav.city !== city));
+    setIsCurrentSaved(false);
+    Alert.alert('Removed', `${city} removed from saved locations.`);
+  };
+
+  const loadSavedLocation = async (favorite) => {
+    setLoading(true);
+    await getAQI(favorite.lat, favorite.lon);
+    setSearchQuery('');
+    setShowSavedLocations(false);
+  };
+
+  const removeSavedLocationItem = (locationId) => {
+    setSavedLocations(prev => prev.filter(loc => loc.id !== locationId));
+  };
+
   useEffect(() => {
+    // Check if current city is in locations
+    const isExist = savedLocations.some(loc => loc.city === city);
+    setIsCurrentSaved(isExist);
+  }, [savedLocations, city]);
+
+  useEffect(() => {
+    loadSavedLocationFromStorage();
     getLocationAndAQI();
   }, []);
 
@@ -229,6 +334,70 @@ export default function App() {
     }
   };
 
+  const SavedLocationsModal = () => (
+    <Modal
+      visible={showSavedLocations}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowSavedLocations(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>&#x1F4CC; My Saved Locations ({savedLocations.length})</Text>
+            <TouchableOpacity onPress={() => setShowSavedLocations(false)}>
+              <Text style={styles.closeButton}>{t.close}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {savedLocations.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No saved locations yet</Text>
+              <Text style={styles.emptyStateSubtext}>
+                Tap the heart icon to save cities to track
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={savedLocations}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.savedLocationsList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.savedLocationItem}
+                  onPress={() => loadSavedLocation(item)}
+                >
+                  <View style={styles.savedLocationContent}>
+                    <Text style={styles.savedLocationCity}>{item.city}</Text>
+                    <View style={styles.savedLocationDetails}>
+                      <View style={[
+                        styles.savedLocationAqiBadge,
+                        { backgroundColor: getAQIColor(item.aqi) }
+                      ]}>
+                        <Text style={styles.savedLocationAqiText}>AQI: {item.aqi}</Text>
+                      </View>
+                      <Text style={styles.savedLocationLevel}>{item.level}</Text>
+                    </View>
+                    <Text style={styles.savedLocationTime}>
+                      Saved: {new Date(item.timestamp).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.removeSavedLocationButton}
+                    onPress={() => removeSavedLocationItem(item.id)}
+                  >
+                    <Text style={styles.removeSavedLocationText}>✕</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+
   const DetailedInfoModal = () => (
     <Modal
       visible={showDetails}
@@ -251,7 +420,7 @@ export default function App() {
               {detailedData?.iaqi && Object.entries(detailedData.iaqi).map(([key, value]) => (
                 <View key={key} style={styles.pollutantRow}>
                   <Text style={styles.pollutantLabel}>{t[key] || key.toUpperCase()}:</Text>
-                  <Text style={[styles.pollutantValue, { color: getAQIColor(value.v, t) }]}>
+                  <Text style={[styles.pollutantValue, { color: getAQIColor(value.v) }]}>
                     {value.v.toFixed(1)}
                   </Text>
                 </View>
@@ -467,7 +636,7 @@ export default function App() {
                         {item.station.name}
                       </Text>
                       <Text style={styles.stationDistance}>
-                        📍 {item.distance} {t.distanceKm} away
+                        &#x1F4CD; {item.distance} {t.distanceKm} away
                       </Text>
                     </View>
                   </View>
@@ -510,6 +679,21 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => {
+                setRefreshing(true);
+                try {
+                  await getLocationAndAQI();
+                } finally {
+                  setRefreshing(false);
+                }
+              }}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
           style={styles.scrollContainer}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={Platform.OS === 'web'}
@@ -540,10 +724,15 @@ export default function App() {
                 accessibilityLabel="city-search-input"
               />
               <TouchableOpacity
-                disabled={loading}
-                style={[styles.actionButton, loading && { opacity: 0.5 }]}
-                onPress={searchByCity}>
-                <Text style={styles.actionButtonText}>{t.search}</Text>
+                disabled={searchLoading || loading}
+                style={[styles.actionButton, (searchLoading || loading) && { opacity: 0.5 }]}
+                onPress={searchByCity}
+              >
+                {searchLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.actionButtonText}>{t.search}</Text>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -551,7 +740,19 @@ export default function App() {
               <ActivityIndicator size="large" color={colors.primary} />
             ) : (
               <>
-                <Text style={styles.city}>{city}</Text>
+                <View style={styles.cityHeader}>
+                  <Text style={styles.city}>{city}</Text>
+                  <TouchableOpacity
+                    style={styles.locationsButton}
+                    onPress={isCurrentSaved ? removeSavedLocation : saveLocation}
+                    accessibilityLabel={isCurrentSaved ? 'Remove from saved locations' : 'Save location'}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.locationIcon}>
+                      {isCurrentSaved ? '\u2764\uFE0F' : '\u{1F90D}'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
                 <View style={[styles.aqiCircle, { backgroundColor: getAQIColor(aqi) }]}>
                   <Text style={styles.aqiText}>{aqi}</Text>
@@ -613,6 +814,15 @@ export default function App() {
                   >
                     <Text style={styles.infoButtonText}>
                       {t.nearby} ({nearbyStations.length})
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.infoButton, { backgroundColor: colors.warning }]}
+                    onPress={() => setShowSavedLocations(true)}
+                  >
+                    <Text style={styles.infoButtonText}>
+                      ⭐ ({savedLocations.length})
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -694,7 +904,8 @@ export default function App() {
           </View>
         </ScrollView>
 
-        {/* Modals */}
+        {/* All Modals */}
+        <SavedLocationsModal />
         <NearbyStationsModal />
         <DetailedInfoModal />
         <ForecastModal />
@@ -702,5 +913,3 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
-
-// styles moved to `src/styles.js`
