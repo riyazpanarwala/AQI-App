@@ -46,7 +46,10 @@ export default {
         airQuality: 'वायु गुणवत्ता',
         lastUpdated: 'अंतिम अपडेट',
         found: 'मिले',
-        viewAll: 'सभी देखें'
+        viewAll: 'सभी देखें',
+        myLocation: 'मेरी लोकेशन',
+        enterCityname: 'शहर का नाम दर्ज करें',
+        search: 'खोजें'
     },
     en: {
         title: 'India AQI Live',
@@ -94,6 +97,9 @@ export default {
         airQuality: 'Air Quality',
         lastUpdated: 'Last Updated',
         found: 'found',
-        viewAll: 'View All'
+        viewAll: 'View All',
+        myLocation: 'My Location',
+        enterCityname: 'Enter city name',
+        search: 'Search'
     }
 };
