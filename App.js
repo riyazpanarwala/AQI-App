@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Text, View, ActivityIndicator, Platform, TouchableOpacity,
-  Alert, Share, ScrollView, Dimensions, Modal, FlatList
+  Alert, Share, ScrollView, Dimensions, Modal, FlatList, TextInput
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
@@ -34,6 +34,7 @@ export default function App() {
   const [showForecast, setShowForecast] = useState(false);
   const [showNearby, setShowNearby] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const t = translations[language];
 
@@ -128,6 +129,62 @@ export default function App() {
       await getAQI(lat, lon);
     } catch (err) {
       setError(t.errorLocation);
+    }
+  };
+
+  const searchByCity = async () => {
+    if (!searchQuery || searchQuery.trim().length === 0) {
+      Alert.alert('Enter a city', 'Please type a city name to search.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Use WAQI search endpoint
+      const url = AppConfig.buildApiUrl('/search/', { keyword: searchQuery });
+      const resp = await axios.get(url);
+
+      if (resp.data && resp.data.status === 'ok' && Array.isArray(resp.data.data) && resp.data.data.length > 0) {
+        // Pick the first match and fetch its feed
+        const first = resp.data.data[0];
+        // If uid available, fetch full feed
+        if (first.uid) {
+          const feedUrl = AppConfig.buildApiUrl(`/feed/@${first.uid}`);
+          const feedResp = await axios.get(feedUrl);
+          if (feedResp.data && feedResp.data.status === 'ok') {
+            const aqiData = feedResp.data.data;
+            setAqi(String(aqiData.aqi ?? '-'));
+            setCity(aqiData.city?.name || first.station?.name || searchQuery);
+            setDetailedData(aqiData);
+            // attempt to set forecast if present
+            if (aqiData.forecast && aqiData.forecast.daily) setForecastData(aqiData.forecast.daily);
+            // optionally fetch nearby for that location
+            if (aqiData.city && aqiData.city.geo && Array.isArray(aqiData.city.geo)) {
+              const [lat, lon] = aqiData.city.geo;
+              getNearbyStations(lat, lon);
+            }
+            setError('');
+          } else {
+            setError(t.errorNetwork);
+          }
+        } else {
+          // Fallback: use the search result aqi and station name
+          setAqi(String(first.aqi ?? '-'));
+          setCity(first.station?.name || searchQuery);
+          setDetailedData(null);
+          setNearbyStations([]);
+        }
+      } else {
+        setError(t.noStation);
+        setCity(searchQuery);
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setError(t.errorNetwork);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -450,13 +507,30 @@ export default function App() {
           <View style={styles.container}>
             {/* Language Toggle */}
             {/*
-      <TouchableOpacity style={styles.langToggle} onPress={() => setLanguage(language === 'hi' ? 'en' : 'hi')}>
-        <Text style={styles.langText}>{language === 'hi' ? 'EN' : 'हिं'}</Text>
-      </TouchableOpacity>
-      */}
+            <TouchableOpacity style={styles.langToggle} onPress={() => setLanguage(language === 'hi' ? 'en' : 'hi')}>
+              <Text style={styles.langText}>{language === 'hi' ? 'EN' : 'हिं'}</Text>
+            </TouchableOpacity>
+            */}
 
             <Text style={styles.title}>{t.title}</Text>
             <Text style={styles.subtitle}>{t.subtitle}</Text>
+
+            {/* Search by city */}
+            <View style={styles.searchRow}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder={language === 'hi' ? 'शहर नाम दर्ज करें' : 'Enter city name'}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+                onSubmitEditing={searchByCity}
+                accessible
+                accessibilityLabel="city-search-input"
+              />
+              <TouchableOpacity style={styles.actionButton} onPress={searchByCity}>
+                <Text style={styles.actionButtonText}>{language === 'hi' ? 'खोजें' : 'Search'}</Text>
+              </TouchableOpacity>
+            </View>
 
             {loading ? (
               <ActivityIndicator size="large" color={colors.primary} />

@@ -86,6 +86,24 @@ export default StyleSheet.create({
         marginBottom: 10,
         textAlign: 'center',
     },
+    // Search
+    searchRow: {
+        flexDirection: 'row',
+        maxWidth: 400,
+        width: '100%',
+        marginBottom: 12,
+        alignItems: 'center',
+    },
+    searchInput: {
+        flex: 1,
+        backgroundColor: colors.surface,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
+        marginRight: 8,
+    },
     subtitle: {
         fontSize: 18,
         color: colors.textMuted,
