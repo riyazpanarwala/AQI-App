@@ -519,16 +519,20 @@ export default function App() {
             <View style={styles.searchRow}>
               <TextInput
                 style={styles.searchInput}
-                placeholder={language === 'hi' ? 'शहर नाम दर्ज करें' : 'Enter city name'}
+                placeholder={t.enterCityname}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 returnKeyType="search"
                 onSubmitEditing={searchByCity}
+                editable={!loading}
                 accessible
                 accessibilityLabel="city-search-input"
               />
-              <TouchableOpacity style={styles.actionButton} onPress={searchByCity}>
-                <Text style={styles.actionButtonText}>{language === 'hi' ? 'खोजें' : 'Search'}</Text>
+              <TouchableOpacity
+                disabled={loading}
+                style={styles.actionButton}
+                onPress={searchByCity}>
+                <Text style={styles.actionButtonText}>{t.search}</Text>
               </TouchableOpacity>
             </View>
 
