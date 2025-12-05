@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Text, View, ActivityIndicator, Platform, TouchableOpacity,
   Alert, Share, ScrollView, Dimensions, Modal, FlatList, TextInput,
@@ -23,9 +23,8 @@ import {
 
 const { width } = Dimensions.get('window');
 
-let i = 0;
-
 export default function App() {
+  const hasMounted = useRef(false);
   const [aqi, setAqi] = useState('-');
   const [city, setCity] = useState('Getting location...');
   const [loading, setLoading] = useState(true);
@@ -38,6 +37,7 @@ export default function App() {
   const [showForecast, setShowForecast] = useState(false);
   const [showNearby, setShowNearby] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [displayedLocation, setDisplayedLocation] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -53,7 +53,16 @@ export default function App() {
     try {
       const locationsData = await AsyncStorage.getItem('aqi_locations');
       if (locationsData) {
-        setSavedLocations(JSON.parse(locationsData));
+        try {
+          const parsed = JSON.parse(locationsData);
+          if (Array.isArray(parsed)) {
+            setSavedLocations(parsed);
+          }
+        } catch (parseError) {
+          console.error('Error parsing locations data:', parseError);
+          // Optionally clear corrupted data
+          await AsyncStorage.removeItem('aqi_locations');
+        }
       }
     } catch (error) {
       console.error('Error loading locations:', error);
@@ -70,10 +79,11 @@ export default function App() {
       }
     };
 
-    if (i > 0) {
+    if (hasMounted.current) {
       saveLocationsToStorage();
+    } else {
+      hasMounted.current = true;
     }
-    i++;
   }, [savedLocations]);
 
   // Function to get nearby stations
@@ -118,6 +128,7 @@ export default function App() {
         setAqi(aqiData.aqi.toString());
         setCity(aqiData.city.name);
         setDetailedData(aqiData);
+        setDisplayedLocation({ lat, lon });
 
         // Extract forecast data
         if (aqiData.forecast && aqiData.forecast.daily) {
@@ -211,6 +222,7 @@ export default function App() {
             // optionally fetch nearby for that location
             if (aqiData.city && aqiData.city.geo && Array.isArray(aqiData.city.geo) && aqiData.city.geo.length >= 2) {
               const [lat, lon] = aqiData.city.geo;
+              setDisplayedLocation({ lat, lon });
               getNearbyStations(lat, lon);
             }
             setError('');
@@ -239,7 +251,7 @@ export default function App() {
   };
 
   const saveLocation = () => {
-    if (!city || !userLocation) {
+    if (!city || !displayedLocation) {
       Alert.alert('Cannot add to locations', 'Location data is not available.');
       return;
     }
@@ -248,8 +260,8 @@ export default function App() {
       id: Date.now().toString(),
       city,
       aqi,
-      lat: userLocation.lat,
-      lon: userLocation.lon,
+      lat: displayedLocation.lat,
+      lon: displayedLocation.lon,
       timestamp: new Date().toISOString(),
       level: getAQILevel(aqi, t)
     };
@@ -276,26 +288,13 @@ export default function App() {
 
   const loadSavedLocation = async (favorite) => {
     setLoading(true);
-    try {
-      await getAQI(favorite.lat, favorite.lon);
-      setSearchQuery('');
-      setShowSavedLocations(false);
-    } catch (error) {
-      Alert.alert('Error', `Could not load ${favorite.city}`);
-      setLoading(false);
-    }
+    await getAQI(favorite.lat, favorite.lon);
+    setSearchQuery('');
+    setShowSavedLocations(false);
   };
 
   const removeSavedLocationItem = (locationId) => {
-    setSavedLocations(prev => {
-      const updatedLocations = prev.filter(loc => loc.id !== locationId);
-      // If we removed the current city from saved locations, update the state
-      const removedloc = prev.find(loc => loc.id === locationId);
-      if (removedloc && removedloc.city === city) {
-        setIsCurrentSaved(false);
-      }
-      return updatedLocations;
-    });
+    setSavedLocations(prev => prev.filter(loc => loc.id !== locationId));
   };
 
   useEffect(() => {
@@ -685,8 +684,11 @@ export default function App() {
               refreshing={refreshing}
               onRefresh={async () => {
                 setRefreshing(true);
-                await getLocationAndAQI();
-                setRefreshing(false);
+                try {
+                  await getLocationAndAQI();
+                } finally {
+                  setRefreshing(false);
+                }
               }}
               colors={[colors.primary]}
               tintColor={colors.primary}
@@ -743,6 +745,8 @@ export default function App() {
                   <TouchableOpacity
                     style={styles.locationsButton}
                     onPress={isCurrentSaved ? removeSavedLocation : saveLocation}
+                    accessibilityLabel={isCurrentSaved ? 'Remove from saved locations' : 'Save location'}
+                    accessibilityRole="button"
                   >
                     <Text style={styles.locationIcon}>
                       {isCurrentSaved ? '❤️' : '🤍'}
