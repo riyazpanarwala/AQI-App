@@ -8,6 +8,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import axios from 'axios';
 import { LineChart } from 'react-native-chart-kit';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppConfig from './src/config';
 import styles from './src/styles';
 import translations from './src/translations';
@@ -21,6 +22,8 @@ import {
 } from './src/utils';
 
 const { width } = Dimensions.get('window');
+
+let i = 0;
 
 export default function App() {
   const [aqi, setAqi] = useState('-');
@@ -39,7 +42,39 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
 
+  // Saved Locations states
+  const [savedLocations, setSavedLocations] = useState([]);
+  const [showSavedLocations, setShowSavedLocations] = useState(false);
+  const [isCurrentSaved, setIsCurrentSaved] = useState(false);
+
   const t = translations[language];
+
+  const loadSavedLocationFromStorage = async () => {
+    try {
+      const locationsData = await AsyncStorage.getItem('aqi_locations');
+      if (locationsData) {
+        setSavedLocations(JSON.parse(locationsData));
+      }
+    } catch (error) {
+      console.error('Error loading locations:', error);
+    }
+  };
+
+  // Save Locations to storage whenever they change
+  useEffect(() => {
+    const saveLocationsToStorage = async () => {
+      try {
+        await AsyncStorage.setItem('aqi_locations', JSON.stringify(savedLocations));
+      } catch (error) {
+        console.error('Error saving locations:', error);
+      }
+    };
+
+    if (i > 0) {
+      saveLocationsToStorage();
+    }
+    i++;
+  }, [savedLocations]);
 
   // Function to get nearby stations
   const getNearbyStations = async (lat, lon) => {
@@ -186,7 +221,8 @@ export default function App() {
         } else {
           // Fallback: use the search result aqi and station name
           setAqi(String(first.aqi ?? '-'));
-          setCity(first.station?.name || searchQuery);
+          const cityName = first.station?.name || searchQuery;
+          setCity(cityName);
           setDetailedData(null);
           setNearbyStations([]);
         }
@@ -202,7 +238,74 @@ export default function App() {
     }
   };
 
+  const saveLocation = () => {
+    if (!city || !userLocation) {
+      Alert.alert('Cannot add to locations', 'Location data is not available.');
+      return;
+    }
+
+    const newLocation = {
+      id: Date.now().toString(),
+      city,
+      aqi,
+      lat: userLocation.lat,
+      lon: userLocation.lon,
+      timestamp: new Date().toISOString(),
+      level: getAQILevel(aqi, t)
+    };
+
+    setSavedLocations(prev => {
+      // Check if already exists
+      const exists = prev.some(loc => loc.city === city);
+      if (exists) {
+        Alert.alert('Already in saved locations', `${city} is already in your locations.`);
+        return prev;
+      }
+
+      Alert.alert('Added to saved locations', `${city} has been added to your locations.`);
+      setIsCurrentSaved(true);
+      return [newLocation, ...prev];
+    });
+  };
+
+  const removeSavedLocation = () => {
+    setSavedLocations(prev => prev.filter(fav => fav.city !== city));
+    setIsCurrentSaved(false);
+    Alert.alert('Removed', `${city} removed from saved locations.`);
+  };
+
+  const loadSavedLocation = async (favorite) => {
+    setLoading(true);
+    try {
+      await getAQI(favorite.lat, favorite.lon);
+      setSearchQuery('');
+      setShowSavedLocations(false);
+    } catch (error) {
+      Alert.alert('Error', `Could not load ${favorite.city}`);
+      setLoading(false);
+    }
+  };
+
+  const removeSavedLocationItem = (locationId) => {
+    setSavedLocations(prev => {
+      const updatedLocations = prev.filter(loc => loc.id !== locationId);
+      // If we removed the current city from saved locations, update the state
+      const removedloc = prev.find(loc => loc.id === locationId);
+      if (removedloc && removedloc.city === city) {
+        setIsCurrentSaved(false);
+      }
+      return updatedLocations;
+    });
+  };
+
   useEffect(() => {
+    // Check if current city is in locations
+    const isExist = savedLocations.some(loc => loc.city === city);
+    setIsCurrentSaved(isExist);
+  }, [savedLocations, city]);
+
+  useEffect(() => {
+    loadSavedLocationFromStorage();
     getLocationAndAQI();
   }, []);
 
@@ -231,6 +334,70 @@ export default function App() {
       console.log('Share error:', error);
     }
   };
+
+  const SavedLocationsModal = () => (
+    <Modal
+      visible={showSavedLocations}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowSavedLocations(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>📌 My Saved Locations ({savedLocations.length})</Text>
+            <TouchableOpacity onPress={() => setShowSavedLocations(false)}>
+              <Text style={styles.closeButton}>{t.close}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {savedLocations.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No saved locations yet</Text>
+              <Text style={styles.emptyStateSubtext}>
+                Tap the pin icon 📌 to save cities to track
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={savedLocations}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.savedLocationsList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.savedLocationItem}
+                  onPress={() => loadSavedLocation(item)}
+                >
+                  <View style={styles.savedLocationContent}>
+                    <Text style={styles.savedLocationCity}>{item.city}</Text>
+                    <View style={styles.savedLocationDetails}>
+                      <View style={[
+                        styles.savedLocationAqiBadge,
+                        { backgroundColor: getAQIColor(item.aqi) }
+                      ]}>
+                        <Text style={styles.savedLocationAqiText}>AQI: {item.aqi}</Text>
+                      </View>
+                      <Text style={styles.savedLocationLevel}>{item.level}</Text>
+                    </View>
+                    <Text style={styles.savedLocationTime}>
+                      Saved: {new Date(item.timestamp).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.removeSavedLocationButton}
+                    onPress={() => removeSavedLocationItem(item.id)}
+                  >
+                    <Text style={styles.removeSavedLocationText}>✕</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
 
   const DetailedInfoModal = () => (
     <Modal
@@ -571,7 +738,17 @@ export default function App() {
               <ActivityIndicator size="large" color={colors.primary} />
             ) : (
               <>
-                <Text style={styles.city}>{city}</Text>
+                <View style={styles.cityHeader}>
+                  <Text style={styles.city}>{city}</Text>
+                  <TouchableOpacity
+                    style={styles.locationsButton}
+                    onPress={isCurrentSaved ? removeSavedLocation : saveLocation}
+                  >
+                    <Text style={styles.locationIcon}>
+                      {isCurrentSaved ? '❤️' : '🤍'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
                 <View style={[styles.aqiCircle, { backgroundColor: getAQIColor(aqi) }]}>
                   <Text style={styles.aqiText}>{aqi}</Text>
@@ -633,6 +810,16 @@ export default function App() {
                   >
                     <Text style={styles.infoButtonText}>
                       {t.nearby} ({nearbyStations.length})
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.infoButton, { backgroundColor: colors.warning }]}
+                    onPress={() => setShowSavedLocations(true)}
+                    disabled={savedLocations.length === 0}
+                  >
+                    <Text style={styles.infoButtonText}>
+                      ⭐ ({savedLocations.length})
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -714,7 +901,8 @@ export default function App() {
           </View>
         </ScrollView>
 
-        {/* Modals */}
+        {/* All Modals */}
+        <SavedLocationsModal />
         <NearbyStationsModal />
         <DetailedInfoModal />
         <ForecastModal />
@@ -722,5 +910,3 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
-
-// styles moved to `src/styles.js`
