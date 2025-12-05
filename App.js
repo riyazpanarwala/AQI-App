@@ -251,7 +251,7 @@ export default function App() {
   };
 
   const saveLocation = () => {
-    if (!city || !displayedLocation) {
+    if (!city || !displayedLocation || !displayedLocation.lat || !displayedLocation.lon) {
       Alert.alert('Cannot add to locations', 'Location data is not available.');
       return;
     }
@@ -354,7 +354,7 @@ export default function App() {
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>No saved locations yet</Text>
               <Text style={styles.emptyStateSubtext}>
-                Tap the pin icon &#x1F4CC; to save cities to track
+                Tap the heart icon to save cities to track
               </Text>
             </View>
           ) : (
