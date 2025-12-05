@@ -749,7 +749,7 @@ export default function App() {
                     accessibilityRole="button"
                   >
                     <Text style={styles.locationIcon}>
-                      {isCurrentSaved ? '\u2764\uFE0F' : '\u1F90D'}
+                      {isCurrentSaved ? '\u2764\uFE0F' : '\u{1F90D}'}
                     </Text>
                   </TouchableOpacity>
                 </View>
