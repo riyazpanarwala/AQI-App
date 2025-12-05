@@ -132,6 +132,15 @@ export default function App() {
     }
   };
 
+  const restoreMyLocation = async () => {
+    if (!userLocation) return;
+    const { lat, lon } = userLocation;
+    setLoading(true);
+    // re-fetch AQI for saved coordinates
+    await getAQI(lat, lon);
+    setLoading(false);
+  };
+
   const searchByCity = async () => {
     if (!searchQuery || searchQuery.trim().length === 0) {
       Alert.alert('Enter a city', 'Please type a city name to search.');
@@ -562,6 +571,14 @@ export default function App() {
 
                   <TouchableOpacity style={styles.actionButton} onPress={shareAQI}>
                     <Text style={styles.actionButtonText}>{t.share}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={restoreMyLocation}
+                    disabled={!userLocation}
+                  >
+                    <Text style={styles.actionButtonText}>{t.myLocation}</Text>
                   </TouchableOpacity>
                 </View>
 

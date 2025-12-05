@@ -47,6 +47,7 @@ export default {
         lastUpdated: 'अंतिम अपडेट',
         found: 'मिले',
         viewAll: 'सभी देखें',
+        myLocation: 'मेरी लोकेशन',
         enterCityname: 'शहर का नाम दर्ज करें',
         search: 'खोजें'
     },
@@ -97,6 +98,7 @@ export default {
         lastUpdated: 'Last Updated',
         found: 'found',
         viewAll: 'View All',
+        myLocation: 'My Location',
         enterCityname: 'Enter city name',
         search: 'Search'
     }
