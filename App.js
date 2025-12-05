@@ -161,7 +161,7 @@ export default function App() {
             // attempt to set forecast if present
             if (aqiData.forecast && aqiData.forecast.daily) setForecastData(aqiData.forecast.daily);
             // optionally fetch nearby for that location
-            if (aqiData.city && aqiData.city.geo && Array.isArray(aqiData.city.geo)) {
+            if (aqiData.city && aqiData.city.geo && Array.isArray(aqiData.city.geo) && aqiData.city.geo.length >= 2) {
               const [lat, lon] = aqiData.city.geo;
               getNearbyStations(lat, lon);
             }
@@ -568,6 +568,7 @@ export default function App() {
                 {/* Info Buttons */}
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
+                    disabled={!detailedData}
                     style={[styles.infoButton, { backgroundColor: colors.secondary }]}
                     onPress={() => setShowDetails(true)}
                   >
@@ -575,6 +576,7 @@ export default function App() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
+                    disabled={!forecastData}
                     style={[styles.infoButton, { backgroundColor: colors.success }]}
                     onPress={() => setShowForecast(true)}
                   >
