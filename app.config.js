@@ -37,9 +37,9 @@ export default ({ config }) => ({
 
   extra: {
     waqiToken: process.env.WAQI_TOKEN,
-	eas: {
-		projectId: process.env.EAS_PROJECT_ID,
-	},
+    eas: {
+      projectId: process.env.EAS_PROJECT_ID,
+    },
   },
 
   cli: {
