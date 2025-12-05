@@ -106,6 +106,7 @@ export default function App() {
     setLoading(true);
     setError('');
     setNearbyStations([]);
+    setSearchQuery('');
 
     let location;
     try {
@@ -136,9 +137,9 @@ export default function App() {
     if (!userLocation) return;
     const { lat, lon } = userLocation;
     setLoading(true);
+    setSearchQuery('');
     // re-fetch AQI for saved coordinates
     await getAQI(lat, lon);
-    setLoading(false);
   };
 
   const searchByCity = async () => {
@@ -175,6 +176,7 @@ export default function App() {
               getNearbyStations(lat, lon);
             }
             setError('');
+            setSearchQuery('');
           } else {
             setError(t.errorNetwork);
           }
@@ -539,7 +541,7 @@ export default function App() {
               />
               <TouchableOpacity
                 disabled={loading}
-                style={styles.actionButton}
+                style={[styles.actionButton, loading && { opacity: 0.5 }]}
                 onPress={searchByCity}>
                 <Text style={styles.actionButtonText}>{t.search}</Text>
               </TouchableOpacity>
@@ -565,16 +567,20 @@ export default function App() {
 
                 {/* Action Buttons */}
                 <View style={styles.buttonRow}>
-                  <TouchableOpacity style={styles.actionButton} onPress={getLocationAndAQI}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, loading && { opacity: 0.5 }]}
+                    onPress={getLocationAndAQI}>
                     <Text style={styles.actionButtonText}>{t.refresh}</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.actionButton} onPress={shareAQI}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, loading && { opacity: 0.5 }]}
+                    onPress={shareAQI}>
                     <Text style={styles.actionButtonText}>{t.share}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.actionButton}
+                    style={[styles.actionButton, loading && { opacity: 0.5 }]}
                     onPress={restoreMyLocation}
                     disabled={!userLocation}
                   >
