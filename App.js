@@ -344,7 +344,7 @@ export default function App() {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>📌 My Saved Locations ({savedLocations.length})</Text>
+            <Text style={styles.modalTitle}>&#x1F4CC; My Saved Locations ({savedLocations.length})</Text>
             <TouchableOpacity onPress={() => setShowSavedLocations(false)}>
               <Text style={styles.closeButton}>{t.close}</Text>
             </TouchableOpacity>
@@ -354,7 +354,7 @@ export default function App() {
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>No saved locations yet</Text>
               <Text style={styles.emptyStateSubtext}>
-                Tap the pin icon 📌 to save cities to track
+                Tap the pin icon &#x1F4CC; to save cities to track
               </Text>
             </View>
           ) : (
@@ -636,7 +636,7 @@ export default function App() {
                         {item.station.name}
                       </Text>
                       <Text style={styles.stationDistance}>
-                        📍 {item.distance} {t.distanceKm} away
+                        &#x1F4CD; {item.distance} {t.distanceKm} away
                       </Text>
                     </View>
                   </View>
@@ -749,7 +749,7 @@ export default function App() {
                     accessibilityRole="button"
                   >
                     <Text style={styles.locationIcon}>
-                      {isCurrentSaved ? '❤️' : '🤍'}
+                      {isCurrentSaved ? '\u2764\uFE0F' : '\u1F90D'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -820,7 +820,6 @@ export default function App() {
                   <TouchableOpacity
                     style={[styles.infoButton, { backgroundColor: colors.warning }]}
                     onPress={() => setShowSavedLocations(true)}
-                    disabled={savedLocations.length === 0}
                   >
                     <Text style={styles.infoButtonText}>
                       ⭐ ({savedLocations.length})
