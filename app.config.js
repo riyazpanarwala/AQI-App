@@ -46,18 +46,4 @@ export default ({ config }) => ({
   cli: {
     appVersionSource: "remote",
   },
-
-  plugins: [
-    [
-      "expo-build-properties",
-      {
-        "android": {
-          "usesCleartextTraffic": true,
-          "compileSdkVersion": 34,
-          "targetSdkVersion": 34,
-          "buildToolsVersion": "34.0.0"
-        }
-      }
-    ]
-  ]
 });

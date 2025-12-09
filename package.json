@@ -20,7 +20,6 @@
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "expo": "^54.0.27",
-    "expo-build-properties": "^1.0.10",
     "expo-document-picker": "^14.0.8",
     "expo-location": "^19.0.8",
     "expo-sharing": "^14.0.8",
