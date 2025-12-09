@@ -34,10 +34,6 @@
     "apk": {
       "android": {
         "buildType": "apk"
-      },
-      "env": {
-        "WAQI_TOKEN": "${WAQI_TOKEN}",
-        "EAS_PROJECT_ID": "${EAS_PROJECT_ID}"
       }
     }
   },
