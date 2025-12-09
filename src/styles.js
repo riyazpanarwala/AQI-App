@@ -733,4 +733,11 @@ export default StyleSheet.create({
         textAlign: 'center',
         paddingHorizontal: 20,
     },
+    lastUpdated: {
+        fontSize: 13,
+        color: '#666',
+        textAlign: 'center',
+        fontStyle: 'italic',
+        opacity: 0.8,
+    },
 });

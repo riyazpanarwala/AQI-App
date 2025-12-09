@@ -41,6 +41,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   // Saved Locations states
   const [savedLocations, setSavedLocations] = useState([]);
@@ -140,6 +141,7 @@ export default function App() {
         await getNearbyStations(lat, lon);
 
         setError('');
+        setLastUpdated(new Date());
       } else {
         setError(t.noStation);
         setCity('Rural area – limited data');
@@ -746,7 +748,17 @@ export default function App() {
             ) : (
               <>
                 <View style={styles.cityHeader}>
-                  <Text style={styles.city}>{city}</Text>
+                  <View>
+                    <Text style={styles.city}>{city}</Text>
+                    {lastUpdated && (
+                      <Text style={styles.lastUpdated}>
+                        Updated {lastUpdated.toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Text>
+                    )}
+                  </View>
                   <TouchableOpacity
                     style={styles.locationsButton}
                     onPress={isCurrentSaved ? removeSavedLocation : saveLocation}
