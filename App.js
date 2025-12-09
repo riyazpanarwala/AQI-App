@@ -219,6 +219,7 @@ export default function App() {
             setAqi(String(aqiData.aqi ?? '-'));
             setCity(aqiData.city?.name || first.station?.name || searchQuery);
             setDetailedData(aqiData);
+            setLastUpdated(new Date());
             // attempt to set forecast if present
             if (aqiData.forecast && aqiData.forecast.daily) setForecastData(aqiData.forecast.daily);
             // optionally fetch nearby for that location
@@ -252,6 +253,12 @@ export default function App() {
     }
   };
 
+  const isSameLocation = (loc, city, coords) =>
+    loc.city === city ||
+    (coords &&
+      Math.abs(loc.lat - coords.lat) < 0.02 &&
+      Math.abs(loc.lon - coords.lon) < 0.02);
+
   const saveLocation = () => {
     if (!city || !displayedLocation || !displayedLocation.lat || !displayedLocation.lon) {
       Alert.alert('Cannot add to locations', 'Location data is not available.');
@@ -269,10 +276,7 @@ export default function App() {
     };
 
     setSavedLocations(prev => {
-      const exists = prev.some(loc =>
-        loc.city === city || (Math.abs(loc.lat - displayedLocation.lat) < 0.02 &&
-          Math.abs(loc.lon - displayedLocation.lon) < 0.02)
-      );
+      const exists = prev.some(loc => isSameLocation(loc, city, displayedLocation));
 
       if (exists) {
         Alert.alert('Already in saved locations', `${city} is already in your locations.`);
@@ -286,7 +290,7 @@ export default function App() {
   };
 
   const removeSavedLocation = () => {
-    setSavedLocations(prev => prev.filter(fav => fav.city !== city));
+    setSavedLocations(prev => prev.filter(loc => !isSameLocation(loc, city, displayedLocation)));
     setIsCurrentSaved(false);
     Alert.alert('Removed', `${city} removed from saved locations.`);
   };
@@ -298,6 +302,7 @@ export default function App() {
     setAqi('-');
     setDetailedData(null);
     setNearbyStations([]);
+    setForecastData(null);
     await getAQI(favorite.lat, favorite.lon);
   };
 
@@ -307,7 +312,7 @@ export default function App() {
 
   useEffect(() => {
     // Check if current city is in locations
-    const isExist = savedLocations.some(loc => loc.city === city);
+    const isExist = savedLocations.some(loc => isSameLocation(loc, city, displayedLocation));
     setIsCurrentSaved(isExist);
   }, [savedLocations, city]);
 
@@ -539,7 +544,7 @@ export default function App() {
                     <Text style={styles.tableHeaderText}>{t.max}</Text>
                     <Text style={styles.tableHeaderText}>{t.min}</Text>
                   </View>
-                  {forecastData.pm25.slice(0, 5).map((day, index) => (
+                  {forecastData.pm25.slice(0, 7).map((day, index) => (
                     <View key={index} style={styles.tableRow}>
                       <Text style={styles.tableCell}>
                         {new Date(day.day).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
@@ -565,7 +570,7 @@ export default function App() {
                       <Text style={styles.tableHeaderText}>{t.max}</Text>
                       <Text style={styles.tableHeaderText}>{t.min}</Text>
                     </View>
-                    {forecastData.pm10.slice(0, 5).map((day, index) => (
+                    {forecastData.pm10.slice(0, 7).map((day, index) => (
                       <View key={index} style={styles.tableRow}>
                         <Text style={styles.tableCell}>
                           {new Date(day.day).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
