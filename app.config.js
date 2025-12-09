@@ -42,8 +42,4 @@ export default ({ config }) => ({
       projectId: process.env.EAS_PROJECT_ID,
     },
   },
-
-  cli: {
-    appVersionSource: "remote",
-  },
 });
