@@ -1,26 +1,43 @@
 {
   "cli": {
-    "version": ">= 3.16.0"
+    "version": ">= 16.28.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "WAQI_TOKEN": "${WAQI_TOKEN}",
+        "EAS_PROJECT_ID": "${EAS_PROJECT_ID}"
+      }
     },
     "preview": {
       "android": {
         "buildType": "apk"
       },
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "WAQI_TOKEN": "${WAQI_TOKEN}",
+        "EAS_PROJECT_ID": "${EAS_PROJECT_ID}"
+      }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "WAQI_TOKEN": "${WAQI_TOKEN}",
+        "EAS_PROJECT_ID": "${EAS_PROJECT_ID}"
       }
     },
     "apk": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "WAQI_TOKEN": "${WAQI_TOKEN}",
+        "EAS_PROJECT_ID": "${EAS_PROJECT_ID}"
       }
     }
   },

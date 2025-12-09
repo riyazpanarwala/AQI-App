@@ -6,7 +6,7 @@ export default ({ config }) => ({
   name: "aqi-app",
   slug: "aqi-app",
   version: "1.0.0",
-
+  owner: "riyazpanarwala",
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",
@@ -29,6 +29,7 @@ export default ({ config }) => ({
       backgroundColor: "#ffffff",
     },
     edgeToEdgeEnabled: true,
+    permissions: ["INTERNET", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
   },
 
   web: {
@@ -44,5 +45,19 @@ export default ({ config }) => ({
 
   cli: {
     appVersionSource: "remote",
-  }
+  },
+
+  plugins: [
+    [
+      "expo-build-properties",
+      {
+        "android": {
+          "usesCleartextTraffic": true,
+          "compileSdkVersion": 34,
+          "targetSdkVersion": 34,
+          "buildToolsVersion": "34.0.0"
+        }
+      }
+    ]
+  ]
 });
