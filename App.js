@@ -269,8 +269,11 @@ export default function App() {
     };
 
     setSavedLocations(prev => {
-      // Check if already exists
-      const exists = prev.some(loc => loc.city === city);
+      const exists = prev.some(loc =>
+        loc.city === city || (Math.abs(loc.lat - displayedLocation.lat) < 0.02 &&
+          Math.abs(loc.lon - displayedLocation.lon) < 0.02)
+      );
+
       if (exists) {
         Alert.alert('Already in saved locations', `${city} is already in your locations.`);
         return prev;
