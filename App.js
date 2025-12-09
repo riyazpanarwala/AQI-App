@@ -287,10 +287,13 @@ export default function App() {
   };
 
   const loadSavedLocation = async (favorite) => {
-    setLoading(true);
-    await getAQI(favorite.lat, favorite.lon);
-    setSearchQuery('');
     setShowSavedLocations(false);
+    setSearchQuery('');
+    setLoading(true);
+    setAqi('-');
+    setDetailedData(null);
+    setNearbyStations([]);
+    await getAQI(favorite.lat, favorite.lon);
   };
 
   const removeSavedLocationItem = (locationId) => {
@@ -488,13 +491,14 @@ export default function App() {
                 {/* PM2.5 Forecast Chart */}
                 <LineChart
                   data={{
-                    labels: forecastData.pm25.slice(0, 5).map(day =>
+                    labels: forecastData.pm25.slice(0, 7).map(day =>
                       new Date(day.day).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
-                        weekday: 'short'
+                        month: 'short',
+                        day: 'numeric'
                       })
                     ),
                     datasets: [{
-                      data: forecastData.pm25.slice(0, 5).map(day => day.avg)
+                      data: forecastData.pm25.slice(0, 7).map(day => day.avg)
                     }]
                   }}
                   width={width - 60}
@@ -684,11 +688,12 @@ export default function App() {
               refreshing={refreshing}
               onRefresh={async () => {
                 setRefreshing(true);
-                try {
+                if (displayedLocation) {
+                  await getAQI(displayedLocation.lat, displayedLocation.lon);
+                } else {
                   await getLocationAndAQI();
-                } finally {
-                  setRefreshing(false);
                 }
+                setRefreshing(false);
               }}
               colors={[colors.primary]}
               tintColor={colors.primary}
