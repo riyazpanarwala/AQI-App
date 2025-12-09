@@ -41,6 +41,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   // Saved Locations states
   const [savedLocations, setSavedLocations] = useState([]);
@@ -140,6 +141,7 @@ export default function App() {
         await getNearbyStations(lat, lon);
 
         setError('');
+        setLastUpdated(new Date());
       } else {
         setError(t.noStation);
         setCity('Rural area – limited data');
@@ -217,6 +219,7 @@ export default function App() {
             setAqi(String(aqiData.aqi ?? '-'));
             setCity(aqiData.city?.name || first.station?.name || searchQuery);
             setDetailedData(aqiData);
+            setLastUpdated(new Date());
             // attempt to set forecast if present
             if (aqiData.forecast && aqiData.forecast.daily) setForecastData(aqiData.forecast.daily);
             // optionally fetch nearby for that location
@@ -250,6 +253,12 @@ export default function App() {
     }
   };
 
+  const isSameLocation = (loc, city, coords) =>
+    loc.city === city ||
+    (coords &&
+      Math.abs(loc.lat - coords.lat) < 0.02 &&
+      Math.abs(loc.lon - coords.lon) < 0.02);
+
   const saveLocation = () => {
     if (!city || !displayedLocation || !displayedLocation.lat || !displayedLocation.lon) {
       Alert.alert('Cannot add to locations', 'Location data is not available.');
@@ -267,8 +276,8 @@ export default function App() {
     };
 
     setSavedLocations(prev => {
-      // Check if already exists
-      const exists = prev.some(loc => loc.city === city);
+      const exists = prev.some(loc => isSameLocation(loc, city, displayedLocation));
+
       if (exists) {
         Alert.alert('Already in saved locations', `${city} is already in your locations.`);
         return prev;
@@ -281,16 +290,20 @@ export default function App() {
   };
 
   const removeSavedLocation = () => {
-    setSavedLocations(prev => prev.filter(fav => fav.city !== city));
+    setSavedLocations(prev => prev.filter(loc => !isSameLocation(loc, city, displayedLocation)));
     setIsCurrentSaved(false);
     Alert.alert('Removed', `${city} removed from saved locations.`);
   };
 
   const loadSavedLocation = async (favorite) => {
-    setLoading(true);
-    await getAQI(favorite.lat, favorite.lon);
-    setSearchQuery('');
     setShowSavedLocations(false);
+    setSearchQuery('');
+    setLoading(true);
+    setAqi('-');
+    setDetailedData(null);
+    setNearbyStations([]);
+    setForecastData(null);
+    await getAQI(favorite.lat, favorite.lon);
   };
 
   const removeSavedLocationItem = (locationId) => {
@@ -299,7 +312,7 @@ export default function App() {
 
   useEffect(() => {
     // Check if current city is in locations
-    const isExist = savedLocations.some(loc => loc.city === city);
+    const isExist = savedLocations.some(loc => isSameLocation(loc, city, displayedLocation));
     setIsCurrentSaved(isExist);
   }, [savedLocations, city]);
 
@@ -488,13 +501,14 @@ export default function App() {
                 {/* PM2.5 Forecast Chart */}
                 <LineChart
                   data={{
-                    labels: forecastData.pm25.slice(0, 5).map(day =>
+                    labels: forecastData.pm25.slice(0, 7).map(day =>
                       new Date(day.day).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
-                        weekday: 'short'
+                        month: 'short',
+                        day: 'numeric'
                       })
                     ),
                     datasets: [{
-                      data: forecastData.pm25.slice(0, 5).map(day => day.avg)
+                      data: forecastData.pm25.slice(0, 7).map(day => day.avg)
                     }]
                   }}
                   width={width - 60}
@@ -530,7 +544,7 @@ export default function App() {
                     <Text style={styles.tableHeaderText}>{t.max}</Text>
                     <Text style={styles.tableHeaderText}>{t.min}</Text>
                   </View>
-                  {forecastData.pm25.slice(0, 5).map((day, index) => (
+                  {forecastData.pm25.slice(0, 7).map((day, index) => (
                     <View key={index} style={styles.tableRow}>
                       <Text style={styles.tableCell}>
                         {new Date(day.day).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
@@ -556,7 +570,7 @@ export default function App() {
                       <Text style={styles.tableHeaderText}>{t.max}</Text>
                       <Text style={styles.tableHeaderText}>{t.min}</Text>
                     </View>
-                    {forecastData.pm10.slice(0, 5).map((day, index) => (
+                    {forecastData.pm10.slice(0, 7).map((day, index) => (
                       <View key={index} style={styles.tableRow}>
                         <Text style={styles.tableCell}>
                           {new Date(day.day).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
@@ -684,11 +698,12 @@ export default function App() {
               refreshing={refreshing}
               onRefresh={async () => {
                 setRefreshing(true);
-                try {
+                if (displayedLocation) {
+                  await getAQI(displayedLocation.lat, displayedLocation.lon);
+                } else {
                   await getLocationAndAQI();
-                } finally {
-                  setRefreshing(false);
                 }
+                setRefreshing(false);
               }}
               colors={[colors.primary]}
               tintColor={colors.primary}
@@ -741,7 +756,17 @@ export default function App() {
             ) : (
               <>
                 <View style={styles.cityHeader}>
-                  <Text style={styles.city}>{city}</Text>
+                  <View>
+                    <Text style={styles.city}>{city}</Text>
+                    {lastUpdated && (
+                      <Text style={styles.lastUpdated}>
+                        Updated {lastUpdated.toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Text>
+                    )}
+                  </View>
                   <TouchableOpacity
                     style={styles.locationsButton}
                     onPress={isCurrentSaved ? removeSavedLocation : saveLocation}
